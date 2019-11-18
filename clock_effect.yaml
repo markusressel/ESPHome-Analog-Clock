@@ -10,21 +10,6 @@ light:
     name: "NeoPixel Light"
     color_correct: [50%, 50%, 50%]
     effects:
-      - addressable_rainbow:
-          name: Rainbow Effect With Custom Values
-          speed: 10
-          width: 60
-      - addressable_fireworks:
-          name: Fireworks Effect With Custom Values
-          update_interval: 32ms
-          spark_probability: 40%
-          use_random_color: false
-          fade_out_rate: 120
-      - addressable_fireworks:
-          name: Colored Fireworks
-          spark_probability: 100%
-          use_random_color: true
-          fade_out_rate: 70
       - addressable_lambda:
           name: "Clock"
           update_interval: 32ms
