@@ -27,20 +27,11 @@ light:
               return;
             }
 
-            // Examples
-            // it.size() - Number of LEDs
-            // it[num] - Access the LED at index num.
-            // Set the LED at num to the given r, g, b values
-            // it[num] = ESPColor(r, g, b);
-            // Get the color at index num (ESPColor instance)
-            // it[num].get();
-            // Set random color
-            // it[num] = ESPColor::random_color();
-
             // calculate led indices
-            int second_idx = time.second * (it.size() / 60);
-            int minute_idx = time.minute * (it.size() / 60);
-            int hour_idx = (time.hour  % 12) * (it.size() / 12);
+            int second_idx = (int) (time.second * (it.size() / 60));
+            int minute_idx = (int) (time.minute * (it.size() / 60));
+            int hour_idx = (int) ((time.hour % 12) * (it.size() / 12));
+            int hour_inc_min_idx = hour_idx + (int) (((float) time.minute / 12) * (it.size() / 60));
 
             // fade out old colors
             for (int i = 0; i < it.size(); i++) {
@@ -80,7 +71,7 @@ light:
             // set colors
             clock_ring_colors[second_idx] = second_color;
             clock_ring_colors[minute_idx] = minute_color;
-            clock_ring_colors[hour_idx] = hour_color;
+            clock_ring_colors[hour_inc_min_idx] = hour_color;
 
             // apply colors to light
             for (int i = 0; i < it.size(); i++) {
