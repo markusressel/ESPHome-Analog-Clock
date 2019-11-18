@@ -1,0 +1,103 @@
+light:
+  - id: light_ring
+    internal: False
+    platform: neopixelbus
+    type: GRB
+    variant: SK6812 # WS2812X
+    pin: RX #GPIO23
+    num_leds: 60
+    method: ESP8266_DMA
+    name: "NeoPixel Light"
+    color_correct: [50%, 50%, 50%]
+    effects:
+      - addressable_rainbow:
+          name: Rainbow Effect With Custom Values
+          speed: 10
+          width: 60
+      - addressable_fireworks:
+          name: Fireworks Effect With Custom Values
+          update_interval: 32ms
+          spark_probability: 40%
+          use_random_color: false
+          fade_out_rate: 120
+      - addressable_fireworks:
+          name: Colored Fireworks
+          spark_probability: 100%
+          use_random_color: true
+          fade_out_rate: 70
+      - addressable_lambda:
+          name: "Clock"
+          update_interval: 32ms
+          lambda: |-
+
+            static boolean initialized;
+            static ESPColor clock_ring_colors [60];
+            if (initialized == false) {
+              std::fill_n(clock_ring_colors, it.size(), ESPColor::BLACK);
+              initialized = true;
+            }
+
+            auto time = id(sntp_time).now();
+            if (!time.is_valid()) {
+              return;
+            }
+
+            // Examples
+            // it.size() - Number of LEDs
+            // it[num] - Access the LED at index num.
+            // Set the LED at num to the given r, g, b values
+            // it[num] = ESPColor(r, g, b);
+            // Get the color at index num (ESPColor instance)
+            // it[num].get();
+            // Set random color
+            // it[num] = ESPColor::random_color();
+
+            // calculate led indices
+            int second_idx = time.second * (it.size() / 60);
+            int minute_idx = time.minute * (it.size() / 60);
+            int hour_idx = (time.hour  % 12) * (it.size() / 12);
+
+            // fade out old colors
+            for (int i = 0; i < it.size(); i++) {
+              ESPColor old_color = clock_ring_colors[i];
+              
+              // fade out color
+              int amount = 5;
+              int red = old_color.red;
+              int green = old_color.green;
+              int blue = old_color.blue;
+              int white = old_color.white;
+
+              if (red < amount) { red = 0; } else { red -= amount; }
+              if (green < amount) { green = 0; } else { green -= amount; }
+              if (blue < amount) { blue = 0; } else { blue -= amount; }
+              ESPColor new_color = ESPColor(red, green, blue, 0);
+
+              clock_ring_colors[i] = new_color;
+            }
+
+            // calculate colors
+            ESPColor second_color = ESPColor(id(clock_brightness), 0, 0);
+
+            ESPColor minute_color = ESPColor(0, id(clock_brightness), 0);
+            if (minute_idx == second_idx) {
+              minute_color += second_color;
+            }
+
+            ESPColor hour_color = ESPColor(0, 0, id(clock_brightness));
+            if (hour_idx == minute_idx) {
+              // if seconds are also the same this will already contain the second color
+              hour_color += minute_color;
+            } else if (hour_idx == second_idx) {
+              hour_color += second_color;
+            }
+
+            // set colors
+            clock_ring_colors[second_idx] = second_color;
+            clock_ring_colors[minute_idx] = minute_color;
+            clock_ring_colors[hour_idx] = hour_color;
+
+            // apply colors to light
+            for (int i = 0; i < it.size(); i++) {
+              it[i] = clock_ring_colors[i];
+            }
