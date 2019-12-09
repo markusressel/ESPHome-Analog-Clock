@@ -1,3 +1,27 @@
+globals:
+  - id: clock_brightness
+    type: int
+    restore_value: yes
+    initial_value: '255'
+  - id: clock_indicators_enabled
+    type: bool
+    restore_value: yes
+    initial_value: 'true'
+    
+switch:
+  - platform: template
+    name: "Clock Indicators"
+    lambda: !lambda |-
+      return id(clock_indicators_enabled);
+    turn_on_action:
+      globals.set:
+        id: clock_indicators_enabled
+        value: 'true'
+    turn_off_action: 
+      globals.set:
+        id: clock_indicators_enabled
+        value: 'false'
+
 light:
   - id: light_ring
     internal: False
@@ -66,6 +90,12 @@ light:
               hour_color += minute_color;
             } else if (hour_inc_min_idx == second_idx) {
               hour_color += second_color;
+            }
+            
+            if (id(clock_indicators_enabled)) {
+              for (int i = 0; i < it.size(); i += (int) ((float) it.size() / 12)) {
+                clock_ring_colors[i] = indicator_color;
+              }
             }
 
             // set colors
