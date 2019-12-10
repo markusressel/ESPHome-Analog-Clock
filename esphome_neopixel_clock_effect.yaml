@@ -1,3 +1,14 @@
+esphome:
+  # [...]
+  on_boot:
+    priority: -10
+    then:
+      # enable clock effect after boot
+      - light.turn_on: 
+          id: light_ring
+          brightness: 100%
+          effect: Clock
+
 globals:
   - id: clock_brightness
     type: int
@@ -76,6 +87,9 @@ light:
               clock_ring_colors[i] = new_color;
             }
 
+            int indicator_brightness = id(clock_brightness) / 3;
+            ESPColor indicator_color = ESPColor(indicator_brightness, indicator_brightness, indicator_brightness);
+
             // calculate colors
             ESPColor second_color = ESPColor(id(clock_brightness), 0, 0);
 
@@ -91,7 +105,7 @@ light:
             } else if (hour_inc_min_idx == second_idx) {
               hour_color += second_color;
             }
-            
+
             if (id(clock_indicators_enabled)) {
               for (int i = 0; i < it.size(); i += (int) ((float) it.size() / 12)) {
                 clock_ring_colors[i] = indicator_color;
