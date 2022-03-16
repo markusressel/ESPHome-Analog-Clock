@@ -51,9 +51,9 @@ light:
           lambda: |-
 
             static boolean initialized;
-            static ESPColor clock_ring_colors [60];
+            static Color clock_ring_colors [60];
             if (initialized == false) {
-              std::fill_n(clock_ring_colors, it.size(), ESPColor::BLACK);
+              std::fill_n(clock_ring_colors, it.size(), Color::BLACK);
               initialized = true;
             }
 
@@ -70,7 +70,7 @@ light:
 
             // fade out old colors
             for (int i = 0; i < it.size(); i++) {
-              ESPColor old_color = clock_ring_colors[i];
+              Color old_color = clock_ring_colors[i];
               
               // fade out color
               int amount = 5;
@@ -82,23 +82,23 @@ light:
               if (red < amount) { red = 0; } else { red -= amount; }
               if (green < amount) { green = 0; } else { green -= amount; }
               if (blue < amount) { blue = 0; } else { blue -= amount; }
-              ESPColor new_color = ESPColor(red, green, blue, 0);
+              Color new_color = Color(red, green, blue, 0);
 
               clock_ring_colors[i] = new_color;
             }
 
             int indicator_brightness = id(clock_brightness) / 3;
-            ESPColor indicator_color = ESPColor(indicator_brightness, indicator_brightness, indicator_brightness);
+            Color indicator_color = Color(indicator_brightness, indicator_brightness, indicator_brightness);
 
             // calculate colors
-            ESPColor second_color = ESPColor(id(clock_brightness), 0, 0);
+            Color second_color = Color(id(clock_brightness), 0, 0);
 
-            ESPColor minute_color = ESPColor(0, id(clock_brightness), 0);
+            Color minute_color = Color(0, id(clock_brightness), 0);
             if (minute_idx == second_idx) {
               minute_color += second_color;
             }
 
-            ESPColor hour_color = ESPColor(0, 0, id(clock_brightness));
+            Color hour_color = Color(0, 0, id(clock_brightness));
             if (hour_inc_min_idx == minute_idx) {
               // if seconds are also the same this will already contain the second color
               hour_color += minute_color;
