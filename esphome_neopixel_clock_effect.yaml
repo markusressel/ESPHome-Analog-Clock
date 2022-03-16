@@ -1,5 +1,5 @@
 substitutions:
-  num_leds: "24"
+  num_leds: "60"
 
 esphome:
   name: nodemcu_uhr
