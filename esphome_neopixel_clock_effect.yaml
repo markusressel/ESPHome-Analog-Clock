@@ -12,7 +12,7 @@ esphome:
       - light.turn_on: 
           id: light_ring
           brightness: 100%
-          effect: Clock
+          effect: Sync
 
 globals:
   - id: clock_brightness
@@ -39,7 +39,12 @@ time:
   - platform: sntp
     id: sntp_time
     timezone: Europe/Berlin
-    
+    on_time_sync:
+      then:
+        - light.turn_on:
+            id: light_ring
+            effect: Clock
+
 switch:
   - platform: template
     name: "Clock Indicators"
@@ -193,3 +198,7 @@ light:
             for (int i = 0; i < it.size(); i++) {
               it[i] = clock_ring_colors[i];
             }
+      - addressable_scan:
+          name: Sync
+          move_interval: 100ms
+          scan_width: 1
