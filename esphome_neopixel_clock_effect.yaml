@@ -1,3 +1,6 @@
+substitutions:
+  num_leds: "24"
+
 esphome:
   name: nodemcu_uhr
   platform: ESP8266
@@ -86,7 +89,7 @@ light:
     type: GRB
     variant: SK6812 # WS2812X
     pin: RX #GPIO23
-    num_leds: 60
+    num_leds: "${num_leds}"
     method: ESP8266_DMA
     name: "NeoPixel Light"
     color_correct: [50%, 50%, 50%]
