@@ -18,6 +18,11 @@ globals:
     type: bool
     restore_value: yes
     initial_value: 'true'
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Berlin
     
 switch:
   - platform: template
