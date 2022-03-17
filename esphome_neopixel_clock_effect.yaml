@@ -19,6 +19,24 @@ esphome:
           brightness: 100%
           effect: Sync
 
+wifi:
+  fast_connect: True  # only needed for hidden SSID
+  networks:
+    - ssid: !secret wifi_iot_ssid
+      bssid: !secret wifi_iot_bssid
+      password: !secret wifi_iot_password
+      hidden: true
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Clock FB AP"
+    password: !secret clock_fallback_ap_password
+
+captive_portal:
+
+ota:
+  password: !secret clock_ota_password
+
 globals:
   - id: clock_brightness
     type: int
