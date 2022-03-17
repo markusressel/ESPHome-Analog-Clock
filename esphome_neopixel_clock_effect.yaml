@@ -6,7 +6,8 @@ esphome:
   platform: ESP8266
   board: nodemcuv2
   on_boot:
-    priority: -10
+    # set "loading" effect while initializing
+    priority: 500.0
     then:
       # enable clock effect after boot
       - light.turn_on: 
