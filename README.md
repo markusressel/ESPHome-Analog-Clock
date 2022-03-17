@@ -19,6 +19,8 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 * Create a new ESPHome configuration YAML file
 * Customize the basic device cnfiguration (Board, WiFi, etc.) to your liking
 * Add the contents of [esphome_neopixel_clock_effect.yaml](./esphome_neopixel_clock_effect.yaml) to the file
+* Customize the fields in the `substitutions` part at the top
+* Deploy and enjoy!
 
 # Contributing
 
