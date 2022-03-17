@@ -5,10 +5,14 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 
 # Features
 
+* [x] "Loading" animation while initializing
+* [x] Works with (almost) any LED strip length
 * [x] Fading animations for all hands when switching
 * [x] Slowly fading tail behind the second hand
 * [x] Overlapping (additive) hand colors
-* [x] Hour indicators (optional)
+* [x] Settings
+    * [x] Disable second hand
+    * [x] Show hour indicators
 
 ## How to use
 
