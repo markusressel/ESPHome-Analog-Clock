@@ -26,3 +26,7 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 
 GitHub is for social coding: if you want to write code, I encourage contributions through pull requests from forks
 of this repository. Create GitHub tickets for bugs and new features and comment on the ones that you are interested in.
+
+# License
+
+CC0 see [LICENSE](./LICENSE)
