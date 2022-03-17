@@ -22,6 +22,11 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 * Customize the fields in the `substitutions` part at the top
 * Deploy and enjoy!
 
+## Watchface
+
+The provided [Watchface.svg](Watchface.svg) perfectly fits on the 60 LED NeoPixel ring.
+You can print this, cut it out and simply glue/tape it to the ring to create the look visible in the video above. 
+
 # Contributing
 
 GitHub is for social coding: if you want to write code, I encourage contributions through pull requests from forks
