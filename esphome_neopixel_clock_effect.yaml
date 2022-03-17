@@ -110,7 +110,7 @@ light:
           lambda: |-
 
             static boolean initialized;
-            static Color clock_ring_colors [60];
+            static Color clock_ring_colors [${num_leds}];
             if (initialized == false) {
               std::fill_n(clock_ring_colors, it.size(), Color::BLACK);
               initialized = true;
