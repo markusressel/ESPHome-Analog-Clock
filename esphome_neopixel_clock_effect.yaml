@@ -130,7 +130,8 @@ light:
           lambda: |-
             auto time = id(sntp_time).now();
             int offset = 0;
-            update_clock_hands(it, time, offset);
+            static Color clock_ring_colors [${num_leds}];
+            update_clock_hands(it, time, clock_ring_colors, offset);
       - addressable_scan:
           name: Sync
           move_interval: 100ms

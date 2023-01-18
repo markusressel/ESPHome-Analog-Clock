@@ -1,9 +1,8 @@
 
-void update_clock_hands(AddressableLight &it, ESPTime time, int offset) {
+void update_clock_hands(AddressableLight &it, ESPTime time, Color clock_ring_colors[], int offset) {
     static boolean initialized;
     int num_leds = it.size();
 
-    Color clock_ring_colors [num_leds];
     if (initialized == false) {
       std::fill_n(clock_ring_colors, it.size(), Color::BLACK);
       initialized = true;
