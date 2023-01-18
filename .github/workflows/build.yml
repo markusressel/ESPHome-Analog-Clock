@@ -18,11 +18,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install ClangFormat
+        run: sudo apt-get install -y clang-format
       - name: Run linters
         uses: wearerequired/lint-action@v2
         with:
           auto_fix: true
           clang_format: true
+          clang_format_auto_fix: true
 
       - name: ESPHome Builder
         uses: esphome/build-action@v1.2.1
