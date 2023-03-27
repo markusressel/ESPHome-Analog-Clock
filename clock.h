@@ -13,12 +13,12 @@ void update_clock_hands(AddressableLight &it, ESPTime time, Color clock_ring_col
     }
 
     // calculate led indices
-    int second_idx = (int) (time.second * (it.size() / 60));
-    int minute_idx = (int) (time.minute * (it.size() / 60));
+    int second_idx = (int) (time.second * (it.size() / 60.0));
+    int minute_idx = (int) (time.minute * (it.size() / 60.0));
     // this idx would "jump" in big steps
-    int hour_idx = (int) ((time.hour % 12) * (it.size() / 12));
+    int hour_idx = (int) ((time.hour % 12) * (it.size() / 12.0));
     // this moves one led at a time
-    int hour_inc_min_idx = hour_idx + (int) (((float) time.minute / 12) * (it.size() / 60));
+    int hour_inc_min_idx = hour_idx + (int) (((float) time.minute / 12.0) * (it.size() / 60.0));
 
     // the hour hand may be bigger than one led, so we use an array for that
     std::vector<int> hour_idx_vector;
