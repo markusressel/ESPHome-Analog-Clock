@@ -37,6 +37,7 @@ wifi:
 captive_portal:
 
 ota:
+  platform: esphome
   password: !secret clock_ota_password
 
 globals:
