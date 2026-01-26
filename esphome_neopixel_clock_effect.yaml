@@ -46,21 +46,6 @@ globals:
     restore_value: yes
     initial_value: '255'
 
-  - id: clock_indicators_enabled
-    type: bool
-    restore_value: yes
-    initial_value: 'true'
-
-  - id: clock_seconds_enabled
-    type: bool
-    restore_value: yes
-    initial_value: 'true'
-
-  - id: wide_hour_hand_enabled
-    type: bool
-    restore_value: yes
-    initial_value: 'false'
-
 time:
   - platform: sntp
     id: sntp_time
@@ -73,45 +58,26 @@ time:
 
 switch:
   - platform: template
+    id: clock_indicators_switch
     name: "Clock Indicators"
-    icon: mdi:progress-clock
-    lambda: !lambda |-
-      return id(clock_indicators_enabled);
-    turn_on_action:
-      globals.set:
-        id: clock_indicators_enabled
-        value: 'true'
-    turn_off_action: 
-      globals.set:
-        id: clock_indicators_enabled
-        value: 'false'
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: "config"
 
   - platform: template
+    id: clock_seconds_switch
     name: "Clock Seconds"
     icon: mdi:update
-    lambda: !lambda |-
-      return id(clock_seconds_enabled);
-    turn_on_action:
-      globals.set:
-        id: clock_seconds_enabled
-        value: 'true'
-    turn_off_action:
-      globals.set:
-        id: clock_seconds_enabled
-        value: 'false'
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: "config"
 
   - platform: template
+    id: wide_hour_hand_switch
     name: "Wide Hour Hand"
-    lambda: !lambda |-
-      return id(wide_hour_hand_enabled);
-    turn_on_action:
-      globals.set:
-        id: wide_hour_hand_enabled
-        value: 'true'
-    turn_off_action:
-      globals.set:
-        id: wide_hour_hand_enabled
-        value: 'false'
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: "config"
 
 light:
   - id: light_ring

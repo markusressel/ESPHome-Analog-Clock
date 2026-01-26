@@ -24,7 +24,7 @@ void update_clock_hands(AddressableLight &it, ESPTime time,
 
   // the hour hand may be bigger than one led, so we use an array for that
   std::vector<int> hour_idx_vector;
-  if (id(wide_hour_hand_enabled)) {
+  if (id(wide_hour_hand_switch).state) {
     hour_idx_vector.push_back((hour_inc_min_idx - 1 + it.size()) % (it.size()));
     hour_idx_vector.push_back(hour_inc_min_idx);
     hour_idx_vector.push_back((hour_inc_min_idx + 1) % it.size());
@@ -69,7 +69,7 @@ void update_clock_hands(AddressableLight &it, ESPTime time,
   Color hour_color = Color(0, 0, id(clock_brightness));
   Color minute_color = Color(0, id(clock_brightness), 0);
   Color second_color = Color(id(clock_brightness), 0, 0);
-  if (!id(clock_seconds_enabled)) {
+  if (!id(clock_seconds_switch).state) {
     second_color = Color::BLACK;
   }
 
@@ -90,7 +90,7 @@ void update_clock_hands(AddressableLight &it, ESPTime time,
 
   // === set colors from bottom to top
   // indicators
-  if (id(clock_indicators_enabled)) {
+  if (id(clock_indicators_switch).state) {
     for (int i = 0; i < it.size(); i += (int)((float)it.size() / 12)) {
       clock_ring_colors[i] = indicator_color;
     }
@@ -103,7 +103,7 @@ void update_clock_hands(AddressableLight &it, ESPTime time,
   // minutes
   clock_ring_colors[minute_idx] = minute_color;
   // seconds
-  if (id(clock_seconds_enabled)) {
+  if (id(clock_seconds_switch).state) {
     clock_ring_colors[second_idx] = second_color;
   }
 
