@@ -1,7 +1,7 @@
 # ESPHome-Analog-Clock
 ESPHome configuration example to create an animated clock using the Neopixel 60 LED ring.
 
-[![Demo VIdeo](https://img.youtube.com/vi/RIAHLAqe6oY/0.jpg)](https://www.youtube.com/watch?v=RIAHLAqe6oY)
+[![Demo Video](https://img.youtube.com/vi/RIAHLAqe6oY/0.jpg)](https://www.youtube.com/watch?v=RIAHLAqe6oY)
 
 # Features
 
