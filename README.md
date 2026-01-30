@@ -26,6 +26,9 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 * Upload the configuration to your ESP device
   * Checkout the [ESPHome documentation](https://esphome.io/guides/getting_started_command_line.html) if you are new to ESPHome
   * Optional: Take a look at [esphome-deployment](https://github.com/markusressel/esphome-deployment) to automate ESHome device deployments without the need for Home Assistant Add-Ons or ESPHome Dashboard
+* Create your watchface
+  * Print a [paper watchface](#paper-print), or
+  * [3D print](#3d-printed-case) a case
 * Deploy and enjoy!
 
 ## Watchface
