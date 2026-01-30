@@ -19,8 +19,13 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 * Create a new ESPHome configuration YAML file
 * Customize the basic device configuration (Board, Wi-Fi, etc.) to your liking
 * Add the contents of [esphome_neopixel_clock_effect.yaml](./esphome_neopixel_clock_effect.yaml) to the file
+  * Customize the fields in the `substitutions` part at the top
 * Add the `clock.h` file from [clock.h](./clock.h) to the `include` folder of your ESPHome configuration
-* Customize the fields in the `substitutions` part at the top
+* Add the contents of the `secrets.yaml` file to your ESPHome secrets file
+  * Customize the Wi-Fi and NTP settings to your liking
+* Upload the configuration to your ESP device
+  * Checkout the [ESPHome documentation](https://esphome.io/guides/getting_started_command_line.html) if you are new to ESPHome
+  * Optional: Take a look at [esphome-deployment](https://github.com/markusressel/esphome-deployment) to automate ESHome device deployments without the need for Home Assistant Add-Ons or ESPHome Dashboard
 * Deploy and enjoy!
 
 ## Watchface
