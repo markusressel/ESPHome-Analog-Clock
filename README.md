@@ -17,15 +17,24 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 ## How to use
 
 * Create a new ESPHome configuration YAML file
-* Customize the basic device cnfiguration (Board, WiFi, etc.) to your liking
+* Customize the basic device configuration (Board, Wi-Fi, etc.) to your liking
 * Add the contents of [esphome_neopixel_clock_effect.yaml](./esphome_neopixel_clock_effect.yaml) to the file
 * Customize the fields in the `substitutions` part at the top
 * Deploy and enjoy!
 
 ## Watchface
 
+### Paper Print
+
 The provided [Watchface.svg](Watchface.svg) perfectly fits on the 60 LED NeoPixel ring.
 You can print this, cut it out and simply glue/tape it to the ring to create the look visible in the video above. 
+
+### 3D Printed Case
+
+A simple 3D printed case can be found here:
+https://cad.onshape.com/documents/0e006a8827f608cb658e942e/w/b4c3cdc5ddb2e7bb623cce6a/e/1f500e2bfa3036f79058a29e?renderMode=0&uiState=697d0fb9b6af62c58ba61274
+
+<img src="images/3d_printed_case.jpg" width="300" alt="3D Printed Case"/>
 
 # Contributing
 
