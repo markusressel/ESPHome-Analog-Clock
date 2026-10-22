@@ -1,0 +1,519 @@
+# The animated analog clock with views (progress, countdown, alert) for an addressable LED ring.
+# https://github.com/markusressel/ESPHome-Analog-Clock
+#
+# Requirements of the including configuration (see examples/nodemcu.yaml):
+# - `external_components:` with the `analog_clock` and `virtual_addressable_light` components of this repository
+# - a `time:` component with the id `${clock_time_id}`
+# - the board/chip, Wi-Fi, API etc.
+#
+# Everything below can be overridden with `substitutions:` of the including configuration.
+substitutions:
+  # Number of LEDs of the ring
+  num_leds: "60"
+  # LED index at 12 o'clock
+  clock_offset: "0"
+  # Data pin and type of the LED chip
+  clock_pin: RX
+  clock_led_type: GRB
+  clock_led_variant: SK6812
+  # neopixelbus method, e.g. ESP8266_DMA (ESP8266 RX pin) or ESP32_I2S_1_800KBPS (ESP32)
+  clock_led_method: ESP8266_DMA
+  # Id of the time component that drives the clock
+  clock_time_id: sntp_time
+  # Current limit of the physical ring: the board can't supply full brightness. Applied by the physical light itself,
+  # so no write can exceed it. With `gamma_correct: 0`, 14% caps every byte at 36.
+  clock_max_output: "14%"
+  # The smallest byte the compositor writes for a lit pixel: the correction scales bytes by clock_max_output, so smaller
+  # ones round to 0 (ceil(256 / 37) = 7 for 14%)
+  clock_min_output: "7"
+
+  # API actions onto the physical ring, see clock.h
+  on_loop:
+    - lambda: |-
+        if (clock_compositor != nullptr) {
+          auto time = id(${clock_time_id}).now();
+          clock_compositor->loop(time.is_valid(), time.hour, time.minute, time.second);
+          // the select follows the shown view, whoever changed it
+          std::string view_name = clock_view_name();
+          if (id(clock_view).current_option() != view_name) id(clock_view).publish_state(view_name);
+        }
+  on_boot:
+    - priority: 600
+      then:
+        - lambda: |-
+            clock_compositor = new ClockCompositor(
+              (esphome::light::AddressableLight *) id(light_ring_physical).get_output(),
+              (esphome::light::AddressableLight *) id(light_ring).get_output(),
+              id(light_ring),
+              id(clock_seconds_switch),
+              id(clock_indicators_switch),
+              id(wide_hour_hand_switch),
+              ${clock_offset},
+              1.0f,
+              ${clock_min_output}
+            );
+    # set "loading" effect while initializing Wi-Fi and Time
+    - priority: 500.0
+      then:
+        - light.turn_on:
+            id: light_ring
+            brightness: 100%
+            effect: "Loading Circle"
+    - priority: -100
+      then:
+        # the select restores its option during setup
+        - lambda: |-
+            clock_compositor->set_hand_style(hand_style_from_name(id(clock_hand_style).current_option()));
+            clock_set_default_transition(id(clock_view_transition).current_option(), id(clock_view_transition_ms).state);
+            clock_set_default_track(id(clock_view_track).state);
+            clock_set_default_progress_animation(id(clock_view_progress_animation).current_option(), id(clock_view_progress_animation_ms).state);
+
+api:
+  actions:
+    # The whole ring pulses in a color, on top of the clock
+    - action: trigger_pulse
+      variables:
+        # Optional color. Format: [R, G, B]. Pass [-1, -1, -1] or omit for white.
+        color_rgb: int[]
+        # Number of pulses. Pass 0 for one.
+        count: int
+        # Duration of one pulse in milliseconds. Pass 0 for 1000.
+        duration: float
+        # Brightness (0-1), scaled by the brightness of the light. Pass 0 for full brightness.
+        brightness: float
+      then:
+        - lambda: |-
+            std::vector<int> color_vec(color_rgb.begin(), color_rgb.end());
+            clock_trigger_pulse(color_vec, count, duration, brightness);
+    # A ring of light spreads in both directions from a position
+    - action: trigger_ripple
+      variables:
+        # Clock position 0-59 (0 = 12 o'clock, 15 = 3 o'clock). Pass -1 for the second hand.
+        position: float
+        # Optional color. Format: [R, G, B]. Pass [-1, -1, -1] or omit for white.
+        color_rgb: int[]
+        # Speed in LEDs per second. Pass 0 for 20.
+        speed: float
+        # Distance the ripple travels in LEDs. Pass 0 for half the ring.
+        max_distance: float
+        # Brightness (0-1), scaled by the brightness of the light. Pass 0 for full brightness.
+        brightness: float
+      then:
+        - lambda: |-
+            std::vector<int> color_vec(color_rgb.begin(), color_rgb.end());
+            clock_trigger_ripple(position, color_vec, speed, max_distance, brightness);
+    # A comet circles the ring from 12 o'clock
+    - action: trigger_spin
+      variables:
+        # Optional color. Format: [R, G, B]. Pass [-1, -1, -1] or omit for a rainbow.
+        color_rgb: int[]
+        # Number of rotations. Pass 0 for one.
+        rotations: float
+        # Speed in rotations per second. Pass 0 for one.
+        speed: float
+        # "clockwise" or "counterclockwise". Pass "" for clockwise.
+        direction: string
+        # Brightness (0-1), scaled by the brightness of the light. Pass 0 for full brightness.
+        brightness: float
+        # Length of the tail in LEDs. Pass 0 for 10.
+        tail: float
+      then:
+        - lambda: |-
+            std::vector<int> color_vec(color_rgb.begin(), color_rgb.end());
+            clock_trigger_spin(color_vec, rotations, speed, direction, brightness, tail);
+    # -- Views: what the ring shows in place of the plain clock face while the light shows the clock. Showing a view of
+    # the kind that is shown already updates it in place. Transitions between views of different kinds:
+    # "fade", "wipe", "none", or "" for the default of the "Clock View Transition" entities.
+    # The clock face
+    - action: show_clock
+      variables:
+        transition: string
+        # Pass 0 for the default of the "Clock View Transition Duration" entity.
+        transition_ms: float
+      then:
+        - lambda: |-
+            clock_show_clock(transition, transition_ms);
+    # Colored sections of the ring, e.g. a progress arc
+    - action: show_progress
+      variables:
+        # Per section [start, end, r, g, b]: start and end are fractions of the ring clockwise from 12 o'clock (0-1),
+        # the color is 0-255 (-1 for the color of the light). Later sections cover earlier ones.
+        sections: float[]
+        # Perceived level (0-1) of white that marks the rest of the ring. Pass 0 for none, -1 for the default of the
+        # "Clock View Track" entity.
+        track: float
+        # Draw the clock hands over the view
+        show_clock: bool
+        # Brightness (0-1), scaled by the brightness of the light. Pass 0 for full brightness.
+        brightness: float
+        transition: string
+        transition_ms: float
+        # How the view changes when it is shown again with other sections: "none", "fade", "fill", "drop", or "" for the
+        # default of the "Clock View Progress Animation" entities.
+        animation: string
+        # Blink like a finished countdown once the whole ring is filled
+        blink_when_complete: bool
+      then:
+        - lambda: |-
+            clock_show_progress(std::vector<float>(sections.begin(), sections.end()), track, show_clock, brightness, transition, transition_ms, animation, blink_when_complete);
+    # An arc that drains back to 12 o'clock. When the time is up, the ring blinks until another view is shown.
+    - action: show_countdown
+      variables:
+        duration_s: float
+        # Time left, to continue a countdown that started earlier. Pass 0 for all of it.
+        remaining_s: float
+        # Optional color. Format: [R, G, B]. Pass [-1, -1, -1] or omit for the color of the light.
+        color_rgb: int[]
+        # Pass 0 for none, -1 for the default of the "Clock View Track" entity.
+        track: float
+        show_clock: bool
+        brightness: float
+        transition: string
+        transition_ms: float
+        # Like for show_progress, but a countdown can only drop its LEDs ("drop"): anything else is none.
+        animation: string
+      then:
+        - lambda: |-
+            std::vector<int> color_vec(color_rgb.begin(), color_rgb.end());
+            clock_show_countdown(duration_s, remaining_s, color_vec, track, show_clock, brightness, transition, transition_ms, animation);
+    # The whole ring breathes in a color
+    - action: show_alert
+      variables:
+        # Optional color. Format: [R, G, B]. Pass [-1, -1, -1] or omit for the color of the light.
+        color_rgb: int[]
+        # Duration of one breath in milliseconds. Pass 0 for 2000.
+        period_ms: float
+        show_clock: bool
+        brightness: float
+        transition: string
+        transition_ms: float
+      then:
+        - lambda: |-
+            std::vector<int> color_vec(color_rgb.begin(), color_rgb.end());
+            clock_show_alert(color_vec, period_ms, show_clock, brightness, transition, transition_ms);
+    # Stops all running effects
+    - action: clear_effects
+      then:
+        - lambda: |-
+            if (clock_compositor != nullptr) clock_compositor->clear_effects();
+
+# Provides clock.h to the lambdas below
+analog_clock:
+
+time:
+  # Start the clock as soon as the time is known
+  - id: !extend ${clock_time_id}
+    on_time_sync:
+      then:
+        - light.turn_on:
+            id: light_ring
+            effect: Clock
+
+sensor:
+  # The time left of the shown countdown view: 0 once the time is up, unknown while no countdown is shown
+  - platform: template
+    name: "Countdown Remaining Time"
+    icon: mdi:timer-sand
+    device_class: duration
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      return clock_compositor == nullptr ? NAN : clock_compositor->countdown_remaining_s();
+
+switch:
+  - platform: template
+    id: clock_indicators_switch
+    name: "Hour Indicators"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: "config"
+        
+  - platform: template
+    id: clock_seconds_switch
+    name: "Clock Seconds"
+    icon: mdi:update
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: "config"
+
+  - platform: template
+    id: wide_hour_hand_switch
+    name: "Wide Hour Hand"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: "config"
+
+select:
+  - platform: template
+    id: clock_hand_style
+    name: "Clock Hand Style"
+    icon: mdi:clock-time-four-outline
+    optimistic: true
+    restore_value: true
+    options:
+      - Trail
+      - Jump
+      - Smooth
+      - Comet
+    initial_option: Trail
+    entity_category: "config"
+    on_value:
+      - lambda: |-
+          if (clock_compositor != nullptr) clock_compositor->set_hand_style(hand_style_from_name(x));
+
+  # How views make way for each other, unless the API action says otherwise
+  - platform: template
+    id: clock_view_transition
+    name: "Clock View Transition"
+    icon: mdi:transition
+    optimistic: true
+    restore_value: true
+    options:
+      - None
+      - Fade
+      - Wipe
+    initial_option: Wipe
+    entity_category: "config"
+    on_value:
+      - lambda: |-
+          clock_set_default_transition(x, id(clock_view_transition_ms).state);
+
+  # How a progress view changes when it is shown again with other sections, unless the API action says otherwise:
+  # Fade (cross-fade), Fill (the arc grows or shrinks smoothly), Drop (new LEDs fall in from the end of the ring, removed ones float up)
+  - platform: template
+    id: clock_view_progress_animation
+    name: "Clock View Progress Animation"
+    icon: mdi:chart-donut
+    optimistic: true
+    restore_value: true
+    options:
+      - None
+      - Fade
+      - Fill
+      - Drop
+    initial_option: Fill
+    entity_category: "config"
+    on_value:
+      - lambda: |-
+          clock_set_default_progress_animation(x, id(clock_view_progress_animation_ms).state);
+
+  # The view the ring shows, which can also be chosen here (until the next view is shown, e.g. by Home Assistant
+  # automations). Views are only visible while the light shows the clock.
+  - platform: template
+    id: clock_view
+    name: "Clock View"
+    icon: mdi:circle-slice-8
+    options:
+      - Clock
+      - Progress
+      - Countdown
+      - Alert
+    optimistic: true
+    initial_option: Clock
+    set_action:
+      - lambda: |-
+          clock_show_view_by_name(x, id(clock_view_progress).state, id(clock_view_countdown_minutes).state);
+
+number:
+  # The size of the views of the "Clock View" select
+  - platform: template
+    id: clock_view_progress
+    name: "Clock View Progress"
+    icon: mdi:progress-helper
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    unit_of_measurement: "%"
+    initial_value: 50
+    restore_value: true
+    entity_category: "config"
+    set_action:
+      - lambda: |-
+          // moving the slider while the progress is shown updates it
+          if (clock_compositor != nullptr && clock_compositor->view_kind() == ViewKind::PROGRESS) {
+            clock_show_view_by_name("Progress", x, id(clock_view_countdown_minutes).state);
+          }
+
+  - platform: template
+    id: clock_view_transition_ms
+    name: "Clock View Transition Duration"
+    icon: mdi:timer-sand
+    optimistic: true
+    min_value: 100
+    max_value: 3000
+    step: 100
+    unit_of_measurement: "ms"
+    initial_value: 600
+    restore_value: true
+    entity_category: "config"
+    set_action:
+      - lambda: |-
+          clock_set_default_transition(id(clock_view_transition).current_option(), x);
+
+  - platform: template
+    id: clock_view_progress_animation_ms
+    name: "Clock View Progress Animation Duration"
+    icon: mdi:timer-sand
+    optimistic: true
+    min_value: 100
+    max_value: 5000
+    step: 100
+    unit_of_measurement: "ms"
+    initial_value: 800
+    restore_value: true
+    entity_category: "config"
+    set_action:
+      - lambda: |-
+          clock_set_default_progress_animation(id(clock_view_progress_animation).current_option(), x);
+
+  - platform: template
+    id: clock_view_track
+    name: "Clock View Track"
+    icon: mdi:circle-outline
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 1
+    unit_of_measurement: "%"
+    initial_value: 8
+    restore_value: true
+    entity_category: "config"
+    set_action:
+      - lambda: |-
+          clock_set_default_track(x);
+
+  - platform: template
+    id: clock_view_countdown_minutes
+    name: "Clock View Countdown"
+    icon: mdi:timer-outline
+    optimistic: true
+    min_value: 1
+    max_value: 60
+    step: 1
+    unit_of_measurement: "min"
+    initial_value: 5
+    restore_value: true
+    entity_category: "config"
+
+light:
+  # Driven only by the ClockCompositor (see AGENTS.md, "ESPHome C++ Compositors")
+  - id: light_ring_physical
+    internal: true
+    platform: neopixelbus
+    type: ${clock_led_type}
+    variant: ${clock_led_variant}
+    pin: ${clock_pin}
+    num_leds: "${num_leds}"
+    method: ${clock_led_method}
+    restore_mode: ALWAYS_ON
+    color_correct: [ "${clock_max_output}", "${clock_max_output}", "${clock_max_output}" ]
+    # Start black: ALWAYS_ON would otherwise show full white (~3.6A on 60 LEDs) until the compositor's first frame, which
+    # browns out the supply and resets the ESP in a loop. Brightness stays at 100%, because ESPColorView scales every
+    # write of the compositor by it; color_brightness only blacks out the light's own color (RGB 0 normalizes to white).
+    initial_state:
+      state: true
+      brightness: 100%
+      color_brightness: 0%
+    default_transition_length: 0s
+    # gamma and brightness are applied by the compositor
+    gamma_correct: 0
+
+  # The user facing light. The compositor shows the clock face while its "Clock" effect runs, else its buffer.
+  - id: light_ring
+    platform: virtual_addressable_light
+    num_leds: "${num_leds}"
+    name: "NeoPixel Light"
+    # on_boot turns it on with the "Loading Circle" anyway; restoring the last state would flash it before that
+    restore_mode: ALWAYS_OFF
+    # Turning the light on without an effect (e.g. in Home Assistant) shows the clock again: views and the clock face
+    # are only visible while the "Clock" effect runs. Turning it on with another effect, or choosing "None" while it is
+    # on, is left alone. The delay lets the turn on call that picked an effect set it first.
+    on_turn_on:
+      - delay: 300ms
+      - if:
+          condition:
+            lambda: |-
+              return id(light_ring).get_effect_name() == "None";
+          then:
+            - light.turn_on:
+                id: light_ring
+                effect: Clock
+    # the buffer holds perceived brightness, the compositor applies gamma exactly once
+    gamma_correct: 1.0
+    # the compositor fades the clock itself
+    default_transition_length: 0s
+    effects:
+      - addressable_rainbow:
+          name: Rainbow Effect With Custom Values
+          speed: 10
+          width: ${num_leds}
+      - addressable_fireworks:
+          name: Fireworks Effect With Custom Values
+          update_interval: 32ms
+          spark_probability: 40%
+          use_random_color: false
+          fade_out_rate: 120
+      - addressable_fireworks:
+          name: Colored Fireworks
+          spark_probability: 100%
+          use_random_color: true
+          fade_out_rate: 70
+      - addressable_lambda:
+          name: "Clock"
+          update_interval: 32ms
+          lambda: |-
+            // the compositor draws the clock face; this effect only selects it
+            if (clock_compositor != nullptr) clock_compositor->mark_clock_effect();
+      - addressable_lambda:
+          name: "Loading Circle"
+          update_interval: 32ms
+          lambda: |-
+
+            static boolean initialized;
+            static int current_index;
+            static Color loading_ring_colors [${num_leds}];
+            if (initialized == false) {
+              std::fill_n(loading_ring_colors, it.size(), Color::BLACK);
+              initialized = true;
+            }
+
+            // fade out old colors
+            for (int i = 0; i < it.size(); i++) {
+              Color old_color = loading_ring_colors[i];
+              
+              // fade out color
+              int amount = 5;
+              int red = old_color.red;
+              int green = old_color.green;
+              int blue = old_color.blue;
+              int white = old_color.white;
+
+              if (red < amount) { red = 0; } else { red -= amount; }
+              if (green < amount) { green = 0; } else { green -= amount; }
+              if (blue < amount) { blue = 0; } else { blue -= amount; }
+              Color new_color = Color(red, green, blue, 0);
+
+              loading_ring_colors[i] = new_color;
+            }
+
+            Color index_color = Color(255, 0, 0);
+            loading_ring_colors[current_index] = index_color;
+
+            // apply colors to light
+            for (int i = 0; i < it.size(); i++) {
+              it[i] = loading_ring_colors[i];
+            }
+
+            // increment index for next run
+            if (current_index < it.size() - 1) {
+              current_index += 1;
+            } else {
+              current_index = 0;
+            }
+      - addressable_scan:
+          name: Sync
+          move_interval: 100ms
+          scan_width: 1
+

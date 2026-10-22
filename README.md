@@ -1,5 +1,6 @@
 # ESPHome-Analog-Clock
-ESPHome configuration example to create an animated clock using the Neopixel 60 LED ring.
+ESPHome configuration to create an animated clock using a Neopixel 60 LED ring, that can also show **progress**, a
+**countdown** and **alerts** on the ring.
 
 [![Demo Video](https://img.youtube.com/vi/RIAHLAqe6oY/0.jpg)](https://www.youtube.com/watch?v=RIAHLAqe6oY)
 
@@ -10,19 +11,59 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
 * [x] Fading animations for all hands when switching
 * [x] Slowly fading tail behind the second hand
 * [x] Overlapping (additive) hand colors
+* [x] Hand styles: Trail, Jump, Smooth, Comet
 * [x] Settings
     * [x] Disable second hand
     * [x] Show hour indicators
+    * [x] Wide hour hand
+* [x] Views, shown instead of the plain clock face (see [docs/API.md](docs/API.md))
+    * [x] Progress arc with any number of differently colored sections
+    * [x] Countdown that drains back to 12 o'clock and blinks when the time is up
+    * [x] Alert that breathes in a color
+    * [x] Transitions between views: fade, wipe
+    * [x] Animations when the progress changes: fade, fill, drop
+    * [x] Follows the color and brightness of the light by default
+* [x] Effects on top of any view: pulse, ripple, spin
+* [x] Everything is also available as Home Assistant entities (view, transition, track, countdown, ...)
 
 ## How to use
 
-* Create a new ESPHome configuration YAML file
-* Customize the basic device configuration (Board, Wi-Fi, etc.) to your liking
-* Add the contents of [esphome_neopixel_clock_effect.yaml](./esphome_neopixel_clock_effect.yaml) to the file
-  * Customize the fields in the `substitutions` part at the top
-* Add the `clock.h` file from [clock.h](./clock.h) to the `include` folder of your ESPHome configuration
-* Add the contents of the `secrets.yaml` file to your ESPHome secrets file
-  * Customize the Wi-Fi and NTP settings to your liking
+The clock is an ESPHome [package](https://esphome.io/components/packages/): the light, its effects, all entities and the
+API actions are in [analog_clock.yaml](./analog_clock.yaml), the animation code is in [clock.h](./components/analog_clock/clock.h).
+See [examples/nodemcu.yaml](./examples/nodemcu.yaml) for a complete configuration of a NodeMCU.
+
+* Create a new ESPHome configuration YAML file and customize the basic device configuration (Board, Wi-Fi, etc.),
+  [examples/nodemcu.yaml](./examples/nodemcu.yaml) is a complete one for a NodeMCU
+* Add the clock to it, straight from GitHub (use a release tag instead of `main` to avoid surprises):
+  ```yaml
+  external_components:
+    - source: github://markusressel/ESPHome-Analog-Clock@main
+      components: [analog_clock, virtual_addressable_light]
+
+  packages:
+    clock: github://markusressel/ESPHome-Analog-Clock/analog_clock.yaml@main
+
+  time:
+    - platform: sntp           # any time component, its id is `clock_time_id` below
+      id: sntp_time
+      timezone: Europe/Berlin
+  ```
+  Alternatively, clone this repository and use `type: local` / `!include` with its files, e.g. to change the code.
+* Customize the clock with `substitutions:` (all of them are optional):
+
+  | Substitution       | Default          | Meaning                                                                          |
+  |--------------------|------------------|----------------------------------------------------------------------------------|
+  | `num_leds`         | `60`             | Number of LEDs of the ring                                                       |
+  | `clock_offset`     | `0`              | LED index at 12 o'clock                                                          |
+  | `clock_pin`        | `RX`             | Data pin of the ring                                                             |
+  | `clock_led_type`   | `GRB`            | Color order                                                                      |
+  | `clock_led_variant`| `SK6812`         | LED chip (`WS2812X`, ...)                                                        |
+  | `clock_led_method` | `ESP8266_DMA`    | [neopixelbus method](https://esphome.io/components/light/neopixelbus/), e.g. for ESP32 |
+  | `clock_time_id`    | `sntp_time`      | Id of the time component                                                         |
+  | `clock_max_output` | `14%`            | Current limit: the highest brightness the board can supply                       |
+  | `clock_min_output` | `7`              | Smallest byte written for a lit pixel (`ceil(256 / (clock_max_output * 256))`)   |
+
+* Add the contents of [examples/secrets.yaml](./examples/secrets.yaml) to your ESPHome secrets file, if you use the example
 * Upload the configuration to your ESP device
   * Checkout the [ESPHome documentation](https://esphome.io/guides/getting_started_command_line.html) if you are new to ESPHome
   * Optional: Take a look at [esphome-deployment](https://github.com/markusressel/esphome-deployment) to automate ESHome device deployments without the need for Home Assistant Add-Ons or ESPHome Dashboard
@@ -30,6 +71,30 @@ ESPHome configuration example to create an animated clock using the Neopixel 60 
   * Print a [paper watchface](#paper-print), or
   * [3D print](#3d-printed-case) a case
 * Deploy and enjoy!
+
+## Views and actions
+
+The ring shows the clock by default. Other views are shown with the API actions `show_progress`, `show_countdown`,
+`show_alert` and `show_clock`, or by choosing one in the "Clock View" select. All actions, entities and rules (e.g. views
+are only visible while the light runs its "Clock" effect) are described in [docs/API.md](docs/API.md).
+
+### Home Assistant
+
+* From Python, with [haad](https://github.com/markusressel/haad): the `AnalogClock` device class wraps the actions and
+  entities, and a claim based scheduler decides which view is shown when several things want the ring.
+* From Home Assistant automations, call the actions as `esphome.<device>_show_progress` etc.
+
+## Development
+
+The animation logic is plain C++ that is tested on the host, without ESPHome:
+
+```shell
+make test      # unit tests of clock.h with coverage
+make compile   # compile the example with the files of this checkout instead of GitHub
+```
+
+`components/virtual_addressable_light` is shared with the author's other LED devices. If you change it here, copy the change back
+(`make sync-component` copies the other way, see the Makefile).
 
 ## Watchface
 

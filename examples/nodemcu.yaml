@@ -1,0 +1,56 @@
+# Complete example: the analog clock on a NodeMCU (ESP8266) with a 60 LED NeoPixel ring on pin RX.
+# Run it with `esphome run nodemcu.yaml`.
+# Lines marked `# remote` use GitHub; `make local-example` swaps them for the files of this checkout (see Makefile).
+substitutions:
+  num_leds: "60"
+  # LED index at 12 o'clock
+  clock_offset: "0"
+  # The default of this value is for the ESP8266 with a 60 LED ring on a USB supply, see analog_clock.yaml
+  clock_max_output: "14%"
+
+esphome:
+  name: analog-clock
+
+esp8266:
+  board: nodemcuv2
+  restore_from_flash: true
+
+# The clock straight from GitHub (use a release tag instead of `main` to avoid surprises)
+external_components:
+  - source: github://markusressel/ESPHome-Analog-Clock@main # remote
+    components: [analog_clock, virtual_addressable_light] # remote
+#local# - source:
+#local#     type: local
+#local#     path: ../components
+
+packages:
+  clock: github://markusressel/ESPHome-Analog-Clock/analog_clock.yaml@main # remote
+#local#  clock: !include ../analog_clock.yaml
+
+wifi:
+  fast_connect: True  # only needed for hidden SSID
+  networks:
+    - ssid: !secret wifi_iot_ssid
+      bssid: !secret wifi_iot_bssid
+      password: !secret wifi_iot_password
+      hidden: true
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Clock FB AP"
+    password: !secret clock_fallback_ap_password
+
+captive_portal:
+
+api:
+
+ota:
+  platform: esphome
+  password: !secret clock_ota_password
+
+logger:
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Berlin
