@@ -1,1 +1,6 @@
-/.esphome/
+.esphome/
+/tests/build/
+*.gcov
+.idea/
+/examples/_local.yaml
+__pycache__/

@@ -3,23 +3,27 @@ name: Build
 on: [push]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [ "3.12" ]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Unit tests
+        run: make test
 
+  build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Use the files of this commit
+        run: make local-example
+
+      - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: ESPHome Builder
         uses: esphome/build-action@v8.1.0
         with:
-          yaml-file: esphome_neopixel_clock_effect.yaml
+          yaml-file: examples/_local.yaml
