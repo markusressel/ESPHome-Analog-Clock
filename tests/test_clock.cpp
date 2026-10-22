@@ -4,11 +4,11 @@ namespace esphome {
 uint32_t g_mock_millis = 0;
 }
 
-#include "../components/analog_clock/clock.h"
-
 #include <cassert>
 #include <cmath>
 #include <iostream>
+
+#include "../components/analog_clock/clock.h"
 
 #define ASSERT_NEAR(a, b, err) assert(std::fabs((a) - (b)) < (err))
 
@@ -59,14 +59,14 @@ void test_encode_output() {
   assert(f.comp.encode_output(ClockColor()) == Color(0, 0, 0, 0));
   // full brightness hits the limit: 50% perceived like `color_correct: [50%, 50%, 50%]` did before
   Color full = f.comp.encode_output(ClockColor(1, 0, 0));
-  assert(full.r == (uint8_t) (std::pow(0.5f, 2.8f) * 255.0f + 0.5f));
+  assert(full.r == (uint8_t)(std::pow(0.5f, 2.8f) * 255.0f + 0.5f));
   assert(full.g == 0 && full.b == 0);
   // a lit pixel never turns off, however dim
   Color dim = f.comp.encode_output(ClockColor(ClockCompositor::to_linear(0.01f), 0, 0));
   assert(dim.r >= 1);
   // the hue is kept
   Color mixed = f.comp.encode_output(ClockColor(1, 0.25f, 0));
-  ASSERT_NEAR(mixed.g / (float) mixed.r, 0.25f, 0.05f);
+  ASSERT_NEAR(mixed.g / (float)mixed.r, 0.25f, 0.05f);
   std::cout << "test_encode_output passed." << std::endl;
 }
 
@@ -164,7 +164,7 @@ void test_smooth_second_hand_glides() {
   f.run(40, 0, 30, 19);
   // the second starts now: at its middle, the hand is halfway between LED 20 and 21
   f.run(500, 0, 30, 20);
-  ASSERT_NEAR(f.out(21).r / (float) f.out(20).r, 1.0f, 0.15f);
+  ASSERT_NEAR(f.out(21).r / (float)f.out(20).r, 1.0f, 0.15f);
   assert(f.out(20).r > 0);
   f.run(400, 0, 30, 20);
   // later in the second, it is mostly on the next LED
@@ -296,7 +296,7 @@ void test_ripple_spreads_both_ways() {
   // after 0.5s the ring is 10 LEDs away in both directions
   assert(f.out(25).r > 0 && f.out(5).r > 0);
   assert(!f.lit(15));
-  ASSERT_NEAR((float) f.out(25).r, (float) f.out(5).r, 1.0f);
+  ASSERT_NEAR((float)f.out(25).r, (float)f.out(5).r, 1.0f);
   f.run(2000, 0, 0, 0, false);
   assert(!f.comp.has_active_effects());
   std::cout << "test_ripple_spreads_both_ways passed." << std::endl;
@@ -368,9 +368,8 @@ void test_hand_style_names() {
   std::cout << "test_hand_style_names passed." << std::endl;
 }
 
-
 // A clock without distractions: hands jump, no seconds, 12:00
-static void calm(ClockFixture &f) {
+static void calm(ClockFixture& f) {
   f.comp.set_hand_style(HandStyle::JUMP);
   f.seconds.state = false;
   f.run(100, 6, 30, 0);
@@ -638,7 +637,7 @@ void test_default_track_follows_the_entity() {
 }
 
 // A progress view of a green bar up to `fraction` of the ring, with the given animation
-static void bar(ClockFixture &f, float fraction, ProgressAnimation animation) {
+static void bar(ClockFixture& f, float fraction, ProgressAnimation animation) {
   f.comp.show_progress({0.0f, fraction, 0, 255, 0}, 0.0f, false, -1.0f, ViewTransition::NONE, -1.0f, animation);
 }
 
@@ -681,8 +680,8 @@ void test_progress_fill_with_other_sections_fades() {
   bar(f, 0.25f, ProgressAnimation::FILL);
   f.run(100, 6, 30, 0);
   // a second section: no pairs to move, so it fades in
-  f.comp.show_progress({0.0f, 0.25f, 0, 255, 0, 0.5f, 0.75f, 255, 0, 0}, 0.0f, false, -1.0f, ViewTransition::NONE, -1.0f,
-                       ProgressAnimation::FILL);
+  f.comp.show_progress({0.0f, 0.25f, 0, 255, 0, 0.5f, 0.75f, 255, 0, 0}, 0.0f, false, -1.0f, ViewTransition::NONE,
+                       -1.0f, ProgressAnimation::FILL);
   f.run(20, 6, 30, 0);
   assert(!f.lit(40) || f.out(40).r < 5);
   f.run(1000, 6, 30, 0);
@@ -848,8 +847,8 @@ void test_countdown_shares_the_settings_of_the_progress() {
 void test_progress_blinks_when_complete_if_asked() {
   ClockFixture f;
   calm(f);
-  f.comp.show_progress({0.0f, 1.0f, 0, 255, 0}, 0.0f, false, -1.0f, ViewTransition::NONE, -1.0f, ProgressAnimation::NONE,
-                       true);
+  f.comp.show_progress({0.0f, 1.0f, 0, 255, 0}, 0.0f, false, -1.0f, ViewTransition::NONE, -1.0f,
+                       ProgressAnimation::NONE, true);
   bool lit_seen = false, dark_seen = false;
   for (int i = 0; i < 100; i++) {
     f.run(20, 6, 30, 0);
@@ -941,8 +940,8 @@ static bool end_reached(int led, bool gained, float travel_ms) {
 }
 
 void test_drops_reach_the_ends_of_the_ring_however_fast_they_are() {
-  // every single drop touches the last LED: floating up ends there, and falling starts there. Frames are 20 ms apart, so
-  // a fast drop moves several LEDs per frame and must not hop over it.
+  // every single drop touches the last LED: floating up ends there, and falling starts there. Frames are 20 ms apart,
+  // so a fast drop moves several LEDs per frame and must not hop over it.
   for (float travel : {300.0f, 500.0f, 700.0f, 800.0f, 900.0f, 1100.0f}) {
     for (int led = 5; led < 50; led++) {
       assert(end_reached(led, false, travel));

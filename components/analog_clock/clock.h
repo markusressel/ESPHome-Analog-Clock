@@ -2,11 +2,11 @@
 
 // This header is included before any component, so it includes what it uses (the tests mock these with esphome.h)
 #if __has_include("esphome/components/light/addressable_light.h")
-#include "esphome/core/hal.h"
-#include "esphome/core/color.h"
 #include "esphome/components/light/addressable_light.h"
 #include "esphome/components/light/light_state.h"
 #include "esphome/components/switch/switch.h"
+#include "esphome/core/color.h"
+#include "esphome/core/hal.h"
 #else
 #include "esphome.h"
 #endif
@@ -26,9 +26,9 @@ struct ClockColor {
   float r, g, b;
   ClockColor(float r = 0, float g = 0, float b = 0) : r(r), g(g), b(b) {}
 
-  ClockColor operator+(const ClockColor &o) const { return ClockColor(r + o.r, g + o.g, b + o.b); }
+  ClockColor operator+(const ClockColor& o) const { return ClockColor(r + o.r, g + o.g, b + o.b); }
   ClockColor operator*(float t) const { return ClockColor(r * t, g * t, b * t); }
-  ClockColor lerp(const ClockColor &target, float t) const {
+  ClockColor lerp(const ClockColor& target, float t) const {
     return ClockColor(r + (target.r - r) * t, g + (target.g - g) * t, b + (target.b - b) * t);
   }
   float peak() const { return std::max({r, g, b}); }
@@ -42,7 +42,7 @@ enum class HandStyle {
   COMET,   // like SMOOTH, with a comet tail behind the second hand
 };
 
-inline HandStyle hand_style_from_name(const std::string &name) {
+inline HandStyle hand_style_from_name(const std::string& name) {
   if (name == "Jump") return HandStyle::JUMP;
   if (name == "Smooth") return HandStyle::SMOOTH;
   if (name == "Comet") return HandStyle::COMET;
@@ -96,14 +96,14 @@ enum class ViewTransition {
 };
 
 // "fade", "wipe", anything else is none (an empty name is the default transition, see clock_transition())
-inline ViewTransition view_transition_from_name(const std::string &name) {
+inline ViewTransition view_transition_from_name(const std::string& name) {
   if (name == "fade") return ViewTransition::FADE;
   if (name == "wipe") return ViewTransition::WIPE;
   return ViewTransition::NONE;
 }
 
 // Option names of the "Clock View Transition" select
-inline ViewTransition view_transition_from_option(const std::string &option) {
+inline ViewTransition view_transition_from_option(const std::string& option) {
   if (option == "Fade") return ViewTransition::FADE;
   if (option == "Wipe") return ViewTransition::WIPE;
   return ViewTransition::NONE;
@@ -112,14 +112,14 @@ inline ViewTransition view_transition_from_option(const std::string &option) {
 // How a progress view changes when it is shown again with other sections
 enum class ProgressAnimation {
   FROM_ENTITY,  // the one chosen with the "Clock View Progress Animation" entities
-  NONE,     // the new sections appear at once
-  FADE,     // the old look cross-fades into the new one
-  FILL,     // the boundaries of the sections move smoothly (a different number of sections fades instead)
-  DROP,     // new LEDs fall in from the end of the ring like drops of an hourglass, removed ones float up
+  NONE,         // the new sections appear at once
+  FADE,         // the old look cross-fades into the new one
+  FILL,         // the boundaries of the sections move smoothly (a different number of sections fades instead)
+  DROP,         // new LEDs fall in from the end of the ring like drops of an hourglass, removed ones float up
 };
 
 // "none", "fade", "fill", "drop", anything else is the default (an empty name is the default animation)
-inline ProgressAnimation progress_animation_from_name(const std::string &name) {
+inline ProgressAnimation progress_animation_from_name(const std::string& name) {
   if (name == "none") return ProgressAnimation::NONE;
   if (name == "fade") return ProgressAnimation::FADE;
   if (name == "fill") return ProgressAnimation::FILL;
@@ -128,7 +128,7 @@ inline ProgressAnimation progress_animation_from_name(const std::string &name) {
 }
 
 // Option names of the "Clock View Progress Animation" select
-inline ProgressAnimation progress_animation_from_option(const std::string &option) {
+inline ProgressAnimation progress_animation_from_option(const std::string& option) {
   if (option == "Fade") return ProgressAnimation::FADE;
   if (option == "Fill") return ProgressAnimation::FILL;
   if (option == "Drop") return ProgressAnimation::DROP;
@@ -208,10 +208,10 @@ class ClockCompositor {
   // max_brightness: perceived output at full brightness (like color_correct, applied before gamma)
   // min_output: the smallest output byte that still lights an LED. With a `color_correct` on the physical light, which
   // scales every byte down, small bytes round to 0: min_output = ceil(256 / (color_correct byte + 1)).
-  ClockCompositor(esphome::light::AddressableLight *physical, esphome::light::AddressableLight *virtual_main,
-                  esphome::light::LightState *main_state, esphome::switch_::Switch *seconds_switch, esphome::switch_::Switch *indicators_switch,
-                  esphome::switch_::Switch *wide_hour_hand_switch, int offset = 0, float max_brightness = 1.0f,
-                  int min_output = 1)
+  ClockCompositor(esphome::light::AddressableLight* physical, esphome::light::AddressableLight* virtual_main,
+                  esphome::light::LightState* main_state, esphome::switch_::Switch* seconds_switch,
+                  esphome::switch_::Switch* indicators_switch, esphome::switch_::Switch* wide_hour_hand_switch,
+                  int offset = 0, float max_brightness = 1.0f, int min_output = 1)
       : physical_(physical),
         virtual_main_(virtual_main),
         main_state_(main_state),
@@ -233,12 +233,12 @@ class ClockCompositor {
     hands_.resize(num_leds_);
     max_output_ = std::pow(esphome::clamp(max_brightness, 0.0f, 1.0f), GAMMA) * 255.0f;
     // the perceived level that maps to the smallest lit output: the dimmest level the ring can show
-    float min_lit = (float) std::max(min_output, 1);
+    float min_lit = (float)std::max(min_output, 1);
     perceived_floor_ = max_output_ > min_lit ? std::pow(min_lit / max_output_, INV_GAMMA) : 1.0f;
     for (int i = 0; i < 256; i++) linear_lut_[i] = std::pow(i / 255.0f, GAMMA);
-    for (auto &p : pulses_) p.start_time = 0;
-    for (auto &r : ripples_) r.start_time = 0;
-    for (auto &s : spins_) s.start_time = 0;
+    for (auto& p : pulses_) p.start_time = 0;
+    for (auto& r : ripples_) r.start_time = 0;
+    for (auto& s : spins_) s.start_time = 0;
   }
 
   int num_leds() const { return num_leds_; }
@@ -255,20 +255,20 @@ class ClockCompositor {
   // Maps a blended linear color to the output bytes. The pixel's peak is converted back to perceived brightness and
   // lifted onto [perceived_floor_, 1] before gamma is applied, so a lit pixel never turns off. All channels are scaled
   // by the same factor, which keeps the hue.
-  esphome::Color encode_output(const ClockColor &color) const {
+  esphome::Color encode_output(const ClockColor& color) const {
     float peak = std::min(color.peak(), 1.0f);
     if (peak <= 0.0f) return esphome::Color(0, 0, 0, 0);
     float perceived = std::pow(peak, INV_GAMMA);
     if (perceived < BLACK_THRESHOLD || max_output_ <= 0.0f) return esphome::Color(0, 0, 0, 0);
     float lifted = perceived_floor_ + (1.0f - perceived_floor_) * perceived;
     float scale = std::pow(lifted, GAMMA) * max_output_ / peak;
-    auto to_byte = [&](float v) { return (uint8_t) (esphome::clamp(v * scale, 0.0f, 255.0f) + 0.5f); };
+    auto to_byte = [&](float v) { return (uint8_t)(esphome::clamp(v * scale, 0.0f, 255.0f) + 0.5f); };
     return esphome::Color(to_byte(color.r), to_byte(color.g), to_byte(color.b), 0);
   }
 
   // A perceived RGB color like Home Assistant colors, as hue in linear light normalized to a peak of 1.
   // An empty color or [-1, ...] gives `fallback`.
-  ClockColor hue_of(const std::vector<int> &color_rgb, const ClockColor &fallback) const {
+  ClockColor hue_of(const std::vector<int>& color_rgb, const ClockColor& fallback) const {
     if (color_rgb.size() < 3 || color_rgb[0] < 0) return fallback;
     ClockColor c(linear_lut_[esphome::clamp(color_rgb[0], 0, 255)], linear_lut_[esphome::clamp(color_rgb[1], 0, 255)],
                  linear_lut_[esphome::clamp(color_rgb[2], 0, 255)]);
@@ -280,26 +280,26 @@ class ClockCompositor {
   static ClockColor light_color() { return ClockColor(-1.0f, -1.0f, -1.0f); }
 
   // The hue of an explicit color, or the color of the light for an empty color or [-1, ...]
-  ClockColor hue_or_light_color(const std::vector<int> &color_rgb) const {
+  ClockColor hue_or_light_color(const std::vector<int>& color_rgb) const {
     if (color_rgb.size() < 3 || color_rgb[0] < 0) return light_color();
     return hue_of(color_rgb, ClockColor(1, 1, 1));
   }
 
   // `hue`, or the color of the light (as of this frame) if it is `light_color()`
-  const ClockColor &resolve_(const ClockColor &hue) const { return hue.r < 0.0f ? light_hue_ : hue; }
+  const ClockColor& resolve_(const ClockColor& hue) const { return hue.r < 0.0f ? light_hue_ : hue; }
 
   // LED position of a clock position (0-60, 0 = 12 o'clock)
   float led_position(float clock_position) const { return clock_position * num_leds_ / 60.0f; }
 
   // Distance between two LED positions around the ring
   float ring_distance(float a, float b) const {
-    float d = std::fmod(std::fabs(a - b), (float) num_leds_);
+    float d = std::fmod(std::fabs(a - b), (float)num_leds_);
     return std::min(d, num_leds_ - d);
   }
 
   // Signed distance from `from` to `to` around the ring, in (-num_leds / 2, num_leds / 2]
   float ring_offset(float from, float to) const {
-    float d = std::fmod(to - from, (float) num_leds_);
+    float d = std::fmod(to - from, (float)num_leds_);
     if (d > num_leds_ / 2.0f) d -= num_leds_;
     if (d <= -num_leds_ / 2.0f) d += num_leds_;
     return d;
@@ -307,9 +307,8 @@ class ClockCompositor {
 
   // The whole ring pulses `count` times (<= 0: once) in the color, each pulse `duration` ms long (<= 0: default).
   // brightness: perceived 0-1 (<= 0: full), scaled by the light's brightness.
-  void trigger_pulse(std::vector<int> color_rgb = {}, int count = 1, float duration = -1.0f,
-                     float brightness = -1.0f) {
-    ClockPulse &pulse = pulses_[pulse_head_];
+  void trigger_pulse(std::vector<int> color_rgb = {}, int count = 1, float duration = -1.0f, float brightness = -1.0f) {
+    ClockPulse& pulse = pulses_[pulse_head_];
     pulse_head_ = (pulse_head_ + 1) % MAX_PULSES;
     pulse.hue = hue_of(color_rgb, ClockColor(1, 1, 1));
     pulse.count = count > 0 ? count : 1;
@@ -322,7 +321,7 @@ class ClockCompositor {
   // speed: LEDs per second, max_distance: LEDs (<= 0: half the ring), brightness as for trigger_pulse()
   void trigger_ripple(float position = 0.0f, std::vector<int> color_rgb = {}, float speed = -1.0f,
                       float max_distance = -1.0f, float brightness = -1.0f) {
-    ClockRipple &ripple = ripples_[ripple_head_];
+    ClockRipple& ripple = ripples_[ripple_head_];
     ripple_head_ = (ripple_head_ + 1) % MAX_RIPPLES;
     ripple.origin = position < 0.0f ? second_position_ : led_position(position);
     ripple.hue = hue_of(color_rgb, ClockColor(1, 1, 1));
@@ -337,7 +336,7 @@ class ClockCompositor {
   // trigger_pulse()
   void trigger_spin(std::vector<int> color_rgb = {}, float rotations = -1.0f, float speed = -1.0f,
                     bool clockwise = true, float brightness = -1.0f, float tail = -1.0f) {
-    ClockSpin &spin = spins_[spin_head_];
+    ClockSpin& spin = spins_[spin_head_];
     spin_head_ = (spin_head_ + 1) % MAX_SPINS;
     spin.rainbow = color_rgb.size() < 3 || color_rgb[0] < 0;
     spin.hue = hue_of(color_rgb, ClockColor(1, 1, 1));
@@ -351,17 +350,17 @@ class ClockCompositor {
 
   // Stops all running effects
   void clear_effects() {
-    for (auto &p : pulses_) p.start_time = 0;
-    for (auto &r : ripples_) r.start_time = 0;
-    for (auto &s : spins_) s.start_time = 0;
+    for (auto& p : pulses_) p.start_time = 0;
+    for (auto& r : ripples_) r.start_time = 0;
+    for (auto& s : spins_) s.start_time = 0;
   }
 
   bool has_active_effects() const {
-    for (const auto &p : pulses_)
+    for (const auto& p : pulses_)
       if (p.start_time != 0) return true;
-    for (const auto &r : ripples_)
+    for (const auto& r : ripples_)
       if (r.start_time != 0) return true;
-    for (const auto &s : spins_)
+    for (const auto& s : spins_)
       if (s.start_time != 0) return true;
     return false;
   }
@@ -393,17 +392,21 @@ class ClockCompositor {
   // Seconds left of the shown countdown (0 once the time is up), NaN while no countdown is shown
   float countdown_remaining_s() const {
     if (view_.kind != ViewKind::COUNTDOWN) return NAN;
-    float elapsed = (float) (millis() - view_.start_time);
+    float elapsed = (float)(millis() - view_.start_time);
     return std::max(view_.duration - elapsed, 0.0f) / 1000.0f;
   }
 
   // The name of the shown view, as in the "Clock View" select
-  const char *view_name() const {
+  const char* view_name() const {
     switch (view_.kind) {
-      case ViewKind::PROGRESS: return "Progress";
-      case ViewKind::COUNTDOWN: return "Countdown";
-      case ViewKind::ALERT: return "Alert";
-      default: return "Clock";
+      case ViewKind::PROGRESS:
+        return "Progress";
+      case ViewKind::COUNTDOWN:
+        return "Countdown";
+      case ViewKind::ALERT:
+        return "Alert";
+      default:
+        return "Clock";
     }
   }
   bool in_transition() const { return transition_.kind != ViewTransition::NONE; }
@@ -417,7 +420,7 @@ class ClockCompositor {
   // Sections of the ring in colors. Showing them again while a progress view is shown changes it with `animation`.
   // `sections` holds [start, end, r, g, b] per section: start and end are fractions of
   // the ring clockwise from 12 o'clock (0-1), the color is perceived 0-255. Later sections cover earlier ones.
-  void show_progress(const std::vector<float> &sections, float track = -1.0f, bool show_clock = false,
+  void show_progress(const std::vector<float>& sections, float track = -1.0f, bool show_clock = false,
                      float brightness = -1.0f, ViewTransition transition = ViewTransition::NONE,
                      float transition_ms = -1.0f, ProgressAnimation animation = ProgressAnimation::FROM_ENTITY,
                      bool blink_when_complete = false) {
@@ -429,18 +432,17 @@ class ClockCompositor {
     view.track = track < 0.0f ? -1.0f : esphome::clamp(track, 0.0f, 1.0f);
     view.brightness = brightness > 0.0f ? std::min(brightness, 1.0f) : 1.0f;
     for (size_t i = 0; i + 5 <= sections.size(); i += 5) {
-      view.sections.push_back(ClockSection{esphome::clamp(sections[i], 0.0f, 1.0f),
-                                           esphome::clamp(sections[i + 1], 0.0f, 1.0f),
-                                           hue_or_light_color({(int) sections[i + 2], (int) sections[i + 3],
-                                                               (int) sections[i + 4]})});
+      view.sections.push_back(
+          ClockSection{esphome::clamp(sections[i], 0.0f, 1.0f), esphome::clamp(sections[i + 1], 0.0f, 1.0f),
+                       hue_or_light_color({(int)sections[i + 2], (int)sections[i + 3], (int)sections[i + 4]})});
     }
     set_view_(view, transition, transition_ms);
   }
 
   // The arc drains back to 12 o'clock in `duration_s` (`remaining_s` <= 0: all of it is left). When the time is up,
   // the ring blinks until another view is shown.
-  void show_countdown(float duration_s, float remaining_s = -1.0f, std::vector<int> color_rgb = {},
-                      float track = -1.0f, bool show_clock = false, float brightness = -1.0f,
+  void show_countdown(float duration_s, float remaining_s = -1.0f, std::vector<int> color_rgb = {}, float track = -1.0f,
+                      bool show_clock = false, float brightness = -1.0f,
                       ViewTransition transition = ViewTransition::NONE, float transition_ms = -1.0f,
                       ProgressAnimation animation = ProgressAnimation::FROM_ENTITY) {
     ClockView view;
@@ -452,7 +454,7 @@ class ClockCompositor {
     view.hue = hue_or_light_color(color_rgb);
     view.duration = std::max(duration_s, 0.001f) * 1000.0f;
     float left_ms = remaining_s > 0.0f ? std::min(remaining_s * 1000.0f, view.duration) : view.duration;
-    view.start_time = std::max<uint32_t>(millis() - (uint32_t) (view.duration - left_ms), 1);
+    view.start_time = std::max<uint32_t>(millis() - (uint32_t)(view.duration - left_ms), 1);
     set_view_(view, transition, transition_ms);
   }
 
@@ -477,9 +479,9 @@ class ClockCompositor {
     last_run_ = now;
 
     update_fades_(dt);
-    const auto &light = main_state_->remote_values;
-    light_hue_ = hue_of({(int) (light.get_red() * 255.0f + 0.5f), (int) (light.get_green() * 255.0f + 0.5f),
-                         (int) (light.get_blue() * 255.0f + 0.5f)},
+    const auto& light = main_state_->remote_values;
+    light_hue_ = hue_of({(int)(light.get_red() * 255.0f + 0.5f), (int)(light.get_green() * 255.0f + 0.5f),
+                         (int)(light.get_blue() * 255.0f + 0.5f)},
                         ClockColor(1, 1, 1));
     update_clock_mode_(now);
 
@@ -492,7 +494,7 @@ class ClockCompositor {
     float smooth_second = second + second_fraction;
     second_position_ = led_position(smooth_second);
 
-    for (auto &c : clock_layer_) c = ClockColor();
+    for (auto& c : clock_layer_) c = ClockColor();
     if (shows_clock_ && time_valid) {
       render_clock_(hour, minute, second, smooth_second, dt);
     }
@@ -560,16 +562,16 @@ class ClockCompositor {
 
   // Weight of a hand at `position` for LED `i` when blending between neighbouring LEDs (width: LEDs at full weight)
   float hand_weight_(int i, float position, float width) const {
-    float d = ring_distance((float) i, position);
+    float d = ring_distance((float)i, position);
     return esphome::clamp((width + 1.0f) / 2.0f - d, 0.0f, 1.0f);
   }
 
   // The clock face at full brightness, in linear light
   void render_clock_(int hour, int minute, int second, float smooth_second, uint32_t dt) {
     HandStyle style = hand_style_;
-    std::vector<ClockColor> &hands = hands_;
-    std::vector<ClockColor> &layer = clock_layer_;
-    for (auto &h : hands) h = ClockColor();
+    std::vector<ClockColor>& hands = hands_;
+    std::vector<ClockColor>& layer = clock_layer_;
+    for (auto& h : hands) h = ClockColor();
     const ClockColor hour_color(0, 0, 1), minute_color(0, 1, 0), second_color(1, 0, 0);
     bool wide_hour = wide_hour_hand_switch_->state;
     bool show_seconds = seconds_switch_->state;
@@ -587,7 +589,7 @@ class ClockCompositor {
           hands[i] = hands[i] + second_color * hand_weight_(i, second_position_, 1.0f);
         } else {
           // the head blends into the next LED, the tail fades out (in perceived brightness) behind it
-          float behind = ring_offset((float) i, second_position_);
+          float behind = ring_offset((float)i, second_position_);
           float level = 0.0f;
           if (behind < 0.0f) {
             level = std::max(0.0f, 1.0f + behind);
@@ -599,9 +601,9 @@ class ClockCompositor {
       }
     } else {
       // the original positions: whole LEDs, the hour hand also moves with the minutes
-      int hour_index = (int) ((hour % 12) * (num_leds_ / 12.0f)) + (int) ((minute / 12.0f) * (num_leds_ / 60.0f));
-      int minute_index = (int) (minute * (num_leds_ / 60.0f));
-      int second_index = (int) (second * (num_leds_ / 60.0f));
+      int hour_index = (int)((hour % 12) * (num_leds_ / 12.0f)) + (int)((minute / 12.0f) * (num_leds_ / 60.0f));
+      int minute_index = (int)(minute * (num_leds_ / 60.0f));
+      int second_index = (int)(second * (num_leds_ / 60.0f));
       for (int d = wide_hour ? -1 : 0; d <= (wide_hour ? 1 : 0); d++) {
         int i = ((hour_index + d) % num_leds_ + num_leds_) % num_leds_;
         hands[i] = hands[i] + hour_color;
@@ -615,9 +617,9 @@ class ClockCompositor {
       float rel = TRAIL_DECAY_PER_MS * dt, min_step = TRAIL_MIN_DECAY_PER_MS * dt;
       auto decay = [&](float v) { return std::max(0.0f, v - std::max(v * rel, min_step)); };
       for (int i = 0; i < num_leds_; i++) {
-        ClockColor &t = trail_[i];
+        ClockColor& t = trail_[i];
         t = ClockColor(decay(t.r), decay(t.g), decay(t.b));
-        const ClockColor &h = hands[i];
+        const ClockColor& h = hands[i];
         // hands at full strength, stored perceived
         t = ClockColor(std::max(t.r, std::pow(std::min(h.r, 1.0f), INV_GAMMA)),
                        std::max(t.g, std::pow(std::min(h.g, 1.0f), INV_GAMMA)),
@@ -625,7 +627,7 @@ class ClockCompositor {
         hands[i] = ClockColor(to_linear(t.r), to_linear(t.g), to_linear(t.b));
       }
     } else {
-      for (auto &t : trail_) t = ClockColor();
+      for (auto& t : trail_) t = ClockColor();
     }
 
     bool indicators = indicators_switch_->state;
@@ -642,7 +644,7 @@ class ClockCompositor {
     }
   }
 
-  void set_view_(const ClockView &view, ViewTransition transition, float transition_ms) {
+  void set_view_(const ClockView& view, ViewTransition transition, float transition_ms) {
     uint32_t now = millis();
     if (view.kind != view_.kind && transition != ViewTransition::NONE) {
       prev_view_ = view_;
@@ -660,7 +662,7 @@ class ClockCompositor {
     view_ = view;
   }
 
-  static bool same_sections_(const std::vector<ClockSection> &a, const std::vector<ClockSection> &b) {
+  static bool same_sections_(const std::vector<ClockSection>& a, const std::vector<ClockSection>& b) {
     if (a.size() != b.size()) return false;
     for (size_t i = 0; i < a.size(); i++) {
       if (a[i].start != b[i].start || a[i].end != b[i].end || a[i].hue.r != b[i].hue.r || a[i].hue.g != b[i].hue.g ||
@@ -672,12 +674,13 @@ class ClockCompositor {
   }
 
   // New sections of a progress view that is shown already move from what is displayed now
-  void start_progress_animation_(const ClockView &view, uint32_t now) {
-    ProgressAnimation animation = view.animation == ProgressAnimation::FROM_ENTITY ? default_progress_animation_ : view.animation;
+  void start_progress_animation_(const ClockView& view, uint32_t now) {
+    ProgressAnimation animation =
+        view.animation == ProgressAnimation::FROM_ENTITY ? default_progress_animation_ : view.animation;
     // other kinds of views make way with a transition; nothing to animate from if nothing was displayed (light off)
     // (drops don't start from a snapshot, they are tracked per LED)
     if (view_.kind != ViewKind::PROGRESS || animation == ProgressAnimation::NONE ||
-        animation == ProgressAnimation::DROP || (int) displayed_arc_.size() != num_leds_) {
+        animation == ProgressAnimation::DROP || (int)displayed_arc_.size() != num_leds_) {
       progress_anim_.kind = ProgressAnimation::NONE;
       return;
     }
@@ -713,15 +716,17 @@ class ClockCompositor {
   }
 
   // A view at full brightness, in linear light. `clock_layer_` is the clock face of this frame.
-  // `current`: the view is the shown one (and not the previous one of a transition), which remembers its animation state
-  void render_view_(const ClockView &view, uint32_t now, std::vector<ClockColor> &out, bool current = false) {
+  // `current`: the view is the shown one (and not the previous one of a transition), which remembers its animation
+  // state
+  void render_view_(const ClockView& view, uint32_t now, std::vector<ClockColor>& out, bool current = false) {
     if (view.kind == ViewKind::CLOCK) {
       out = clock_layer_;
       return;
     }
     float level = to_linear(view.brightness);
-    ClockColor track = ClockColor(1, 1, 1) * to_linear((view.track < 0.0f ? default_track_ : view.track) * view.brightness);
-    for (auto &c : out) c = view.kind == ViewKind::ALERT ? ClockColor() : track;
+    ClockColor track =
+        ClockColor(1, 1, 1) * to_linear((view.track < 0.0f ? default_track_ : view.track) * view.brightness);
+    for (auto& c : out) c = view.kind == ViewKind::ALERT ? ClockColor() : track;
 
     if (view.kind == ViewKind::PROGRESS || view.kind == ViewKind::COUNTDOWN) {
       render_arc_(view, level, track, now, out, current);
@@ -729,7 +734,7 @@ class ClockCompositor {
       float phase = std::fmod((now - alert_start_) / view.period, 1.0f);
       float breath = 0.5f - 0.5f * std::cos(phase * 2.0f * 3.14159265f);
       float perceived = ALERT_FLOOR + (1.0f - ALERT_FLOOR) * breath;
-      for (auto &c : out) c = resolve_(view.hue) * to_linear(perceived * view.brightness);
+      for (auto& c : out) c = resolve_(view.hue) * to_linear(perceived * view.brightness);
     }
 
     if (view.show_clock) {
@@ -742,30 +747,33 @@ class ClockCompositor {
 
   // A progress or countdown view over the track already in `out`, with what they have in common: the arc made of
   // sections, its animation when it changes, and the blink of a finished one.
-  void render_arc_(const ClockView &view, float level, const ClockColor &track, uint32_t now,
-                   std::vector<ClockColor> &out, bool current) {
+  void render_arc_(const ClockView& view, float level, const ClockColor& track, uint32_t now,
+                   std::vector<ClockColor>& out, bool current) {
     bool countdown = view.kind == ViewKind::COUNTDOWN;
-    ProgressAnimation configured = view.animation == ProgressAnimation::FROM_ENTITY ? default_progress_animation_ : view.animation;
+    ProgressAnimation configured =
+        view.animation == ProgressAnimation::FROM_ENTITY ? default_progress_animation_ : view.animation;
     // a countdown changes all the time, so it can only drop its LEDs (the other animations restart with every change)
     bool drops = configured == ProgressAnimation::DROP;
     ProgressAnimation animation = (current && !countdown && !drops) ? progress_anim_.kind : ProgressAnimation::NONE;
-    float elapsed = (float) (now - progress_anim_.start_time);
-    float t = animation == ProgressAnimation::NONE ? 1.0f : esphome::clamp(elapsed / progress_anim_.duration, 0.0f, 1.0f);
+    float elapsed = (float)(now - progress_anim_.start_time);
+    float t =
+        animation == ProgressAnimation::NONE ? 1.0f : esphome::clamp(elapsed / progress_anim_.duration, 0.0f, 1.0f);
     float eased = t * t * (3.0f - 2.0f * t);
 
-    const std::vector<ClockSection> *sections = &view.sections;
+    const std::vector<ClockSection>* sections = &view.sections;
     bool time_is_up = false;
     if (countdown) {
-      float spent = (float) (now - view.start_time);
+      float spent = (float)(now - view.start_time);
       time_is_up = spent >= view.duration;
       countdown_sections_.clear();
-      if (!time_is_up) countdown_sections_.push_back(ClockSection{0.0f, 1.0f - spent / view.duration, resolve_(view.hue)});
+      if (!time_is_up)
+        countdown_sections_.push_back(ClockSection{0.0f, 1.0f - spent / view.duration, resolve_(view.hue)});
       sections = &countdown_sections_;
     } else if (animation == ProgressAnimation::FILL) {
       if (progress_anim_.from_sections.size() == view.sections.size()) {
         filled_sections_ = view.sections;
         for (size_t i = 0; i < filled_sections_.size(); i++) {
-          const ClockSection &from = progress_anim_.from_sections[i];
+          const ClockSection& from = progress_anim_.from_sections[i];
           filled_sections_[i].start = from.start + (view.sections[i].start - from.start) * eased;
           filled_sections_[i].end = from.end + (view.sections[i].end - from.end) * eased;
           filled_sections_[i].hue = resolve_(from.hue).lerp(resolve_(view.sections[i].hue), eased);
@@ -776,7 +784,8 @@ class ClockCompositor {
       }
     }
     // drops are whole LEDs, so the arc is made of whole LEDs, too (an edge LED is on from half of its length)
-    for (const auto &section : *sections) draw_section_(out, section.start, section.end, resolve_(section.hue) * level, drops);
+    for (const auto& section : *sections)
+      draw_section_(out, section.start, section.end, resolve_(section.hue) * level, drops);
 
     if (animation == ProgressAnimation::FADE) {
       for (int i = 0; i < num_leds_; i++) out[i] = progress_anim_.from_layer[i].lerp(out[i], eased);
@@ -793,10 +802,10 @@ class ClockCompositor {
     ClockColor blink_hue = resolve_(view.hue);
     uint32_t blink_start = 0;
     if (time_is_up) {
-      blink_start = view.start_time + (uint32_t) view.duration;
+      blink_start = view.start_time + (uint32_t)view.duration;
     } else if (!countdown && view.blink_when_complete && !view.sections.empty() && !drops_in_flight) {
       float first = 1.0f, last = 0.0f;
-      for (const auto &section : view.sections) {
+      for (const auto& section : view.sections) {
         first = std::min(first, section.start);
         last = std::max(last, section.end);
       }
@@ -811,9 +820,9 @@ class ClockCompositor {
       return;
     }
     // the ring blinks (smoothly, on for the first half of a period)
-    float phase = std::fmod((float) (now - blink_start) / TIMER_UP_PERIOD_MS, 1.0f);
+    float phase = std::fmod((float)(now - blink_start) / TIMER_UP_PERIOD_MS, 1.0f);
     float blink = esphome::clamp(std::sin(phase * 2.0f * 3.14159265f) * 4.0f + 0.5f, 0.0f, 1.0f);
-    for (auto &c : out) c = blink_hue * (level * blink);
+    for (auto& c : out) c = blink_hue * (level * blink);
   }
 
   void reset_drops_() {
@@ -826,16 +835,16 @@ class ClockCompositor {
   // a LED that goes dark lifts off and floats up to the end of the ring. Drops are independent of each other, so they
   // can overlap, and a change doesn't affect the ones in flight. `lit_level`: from this peak an LED counts as lit.
   // Returns whether a new LED is still on its way.
-  bool update_drops_(std::vector<ClockColor> &out, const ClockColor &dark, float lit_level, uint32_t now) {
+  bool update_drops_(std::vector<ClockColor>& out, const ClockColor& dark, float lit_level, uint32_t now) {
     float travel = default_progress_animation_ms_;
-    float top = (float) (num_leds_ - 1);
+    float top = (float)(num_leds_ - 1);
     float trail = DROP_TRAIL_MS * num_leds_ / travel;
 
     // the LEDs that changed
     int fresh = 0, gone = 0;
     for (int i = 0; i < num_leds_; i++) {
       bool lit = out[i].peak() >= lit_level && lit_level > 0.0f;
-      if (drops_valid_ && lit != (bool) lit_prev_[i]) {
+      if (drops_valid_ && lit != (bool)lit_prev_[i]) {
         // a LED that switches back while its drop is on its way just stays as it is
         if (lit && drop_kind_[i] != DROP_UP) fresh++;
         if (!lit && drop_kind_[i] != DROP_DOWN) gone++;
@@ -848,7 +857,7 @@ class ClockCompositor {
     uint32_t next_up = std::max(now, next_up_);
     for (int i = 0; i < num_leds_; i++) {
       bool lit = out[i].peak() >= lit_level && lit_level > 0.0f;
-      if (drops_valid_ && lit != (bool) lit_prev_[i]) {
+      if (drops_valid_ && lit != (bool)lit_prev_[i]) {
         if (lit && drop_kind_[i] == DROP_UP) {
           // back on while it was lifting off: it just stays
           drop_kind_[i] = DROP_NONE;
@@ -858,7 +867,7 @@ class ClockCompositor {
         } else if (lit) {
           drop_kind_[i] = DROP_DOWN;
           drop_launch_[i] = next_down;
-          next_down += (uint32_t) fresh_stagger;
+          next_down += (uint32_t)fresh_stagger;
           drop_color_[i] = out[i];
         } else {
           drop_kind_[i] = DROP_UP;
@@ -873,7 +882,7 @@ class ClockCompositor {
     for (int i = num_leds_ - 1; i >= 0; i--) {
       if (drop_kind_[i] == DROP_UP && drop_launch_[i] == 0) {
         drop_launch_[i] = next_up;
-        next_up += (uint32_t) gone_stagger;
+        next_up += (uint32_t)gone_stagger;
       }
     }
     next_down_ = next_down;
@@ -885,7 +894,7 @@ class ClockCompositor {
     dots_.clear();
     for (int i = 0; i < num_leds_; i++) {
       if (drop_kind_[i] == DROP_NONE) continue;
-      int32_t since_launch = (int32_t) (now - drop_launch_[i]);
+      int32_t since_launch = (int32_t)(now - drop_launch_[i]);
       if (drop_kind_[i] == DROP_DOWN) {
         float position = top - since_launch / travel * num_leds_;
         if (since_launch >= 0 && position <= i) {
@@ -907,17 +916,17 @@ class ClockCompositor {
           continue;
         } else {
           // lifting: the smear is below the drop, but not on the LED it left
-          dots_.push_back(Dot{std::max(position - trail, (float) i), position, drop_color_[i]});
+          dots_.push_back(Dot{std::max(position - trail, (float)i), position, drop_color_[i]});
         }
       }
     }
-    for (const auto &dot : dots_) draw_drop_(out, dot.from, dot.to, dot.color);
+    for (const auto& dot : dots_) draw_drop_(out, dot.from, dot.to, dot.color);
     return in_flight;
   }
 
   // A drop that covers the way from `from` to `to` (LED positions): an LED is lit by its distance to that way
-  void draw_drop_(std::vector<ClockColor> &out, float from, float to, const ClockColor &color) const {
-    int first = std::max((int) from - 1, 0), last = std::min((int) to + 2, num_leds_ - 1);
+  void draw_drop_(std::vector<ClockColor>& out, float from, float to, const ClockColor& color) const {
+    int first = std::max((int)from - 1, 0), last = std::min((int)to + 2, num_leds_ - 1);
     for (int j = first; j <= last; j++) {
       float distance = j < from ? from - j : (j > to ? j - to : 0.0f);
       float weight = std::max(0.0f, 1.0f - distance);
@@ -926,11 +935,11 @@ class ClockCompositor {
   }
 
   // Covers the part of the ring between two fractions with a color; an LED the section only touches is blended
-  void draw_section_(std::vector<ClockColor> &out, float start, float end, const ClockColor &color,
+  void draw_section_(std::vector<ClockColor>& out, float start, float end, const ClockColor& color,
                      bool whole_leds = false) const {
     if (end <= start) return;
     for (int i = 0; i < num_leds_; i++) {
-      float led_start = (float) i / num_leds_, led_end = (float) (i + 1) / num_leds_;
+      float led_start = (float)i / num_leds_, led_end = (float)(i + 1) / num_leds_;
       float overlap = std::min(end, led_end) - std::max(start, led_start);
       if (overlap <= 0.0f) continue;
       float cover = std::min(overlap * num_leds_, 1.0f);
@@ -941,15 +950,15 @@ class ClockCompositor {
 
   // Removes finished effects
   void prepare_effects_(uint32_t now) {
-    for (auto &p : pulses_) {
+    for (auto& p : pulses_) {
       if (p.start_time != 0 && now - p.start_time >= p.duration * p.count) p.start_time = 0;
     }
-    for (auto &r : ripples_) {
+    for (auto& r : ripples_) {
       if (r.start_time == 0) continue;
       float radius = (now - r.start_time) / 1000.0f * r.speed;
       if (radius - RIPPLE_RING_THICKNESS > r.max_distance) r.start_time = 0;
     }
-    for (auto &s : spins_) {
+    for (auto& s : spins_) {
       if (s.start_time == 0) continue;
       float travelled = (now - s.start_time) / 1000.0f * s.speed * num_leds_;
       if (travelled > s.rotations * num_leds_ + s.tail) s.start_time = 0;
@@ -958,16 +967,16 @@ class ClockCompositor {
 
   // Adds pulses and ripples to a pixel and covers it with spins. `level` is the perceived brightness of the light.
   ClockColor apply_effects_(ClockColor pixel, int i, uint32_t now, float level) const {
-    for (const auto &p : pulses_) {
+    for (const auto& p : pulses_) {
       if (p.start_time == 0) continue;
       float phase = std::fmod((now - p.start_time) / p.duration, 1.0f);
       float envelope = std::sin(phase * 3.14159265f);
       pixel = pixel + p.hue * to_linear(p.brightness * level * envelope);
     }
-    for (const auto &r : ripples_) {
+    for (const auto& r : ripples_) {
       if (r.start_time == 0) continue;
       float radius = (now - r.start_time) / 1000.0f * r.speed;
-      float distance = ring_distance((float) i, r.origin);
+      float distance = ring_distance((float)i, r.origin);
       if (distance > r.max_distance) continue;
       float diff = std::fabs(distance - radius);
       if (diff >= RIPPLE_RING_THICKNESS) continue;
@@ -975,13 +984,13 @@ class ClockCompositor {
       float fade = 1.0f - distance / (r.max_distance + 1.0f);
       pixel = pixel + r.hue * to_linear(r.brightness * level * profile * fade);
     }
-    for (const auto &s : spins_) {
+    for (const auto& s : spins_) {
       if (s.start_time == 0) continue;
       float travelled = (now - s.start_time) / 1000.0f * s.speed * num_leds_;
       float end = s.rotations * num_leds_;
       // how far the LED is behind the head, counted along the way the comet goes
-      float path = s.direction > 0.0f ? (float) i : (float) ((num_leds_ - i) % num_leds_);
-      float behind = std::fmod(travelled - path, (float) num_leds_);
+      float path = s.direction > 0.0f ? (float)i : (float)((num_leds_ - i) % num_leds_);
+      float behind = std::fmod(travelled - path, (float)num_leds_);
       if (behind < 0.0f) behind += num_leds_;
       float cover = 0.0f;
       if (behind > num_leds_ - 1.0f) {
@@ -1003,27 +1012,51 @@ class ClockCompositor {
 
   // Pure hue in linear light for the LED's position around the ring
   ClockColor rainbow_(int i) const {
-    float h = (float) i / num_leds_ * 6.0f;
-    int sector = (int) h;
+    float h = (float)i / num_leds_ * 6.0f;
+    int sector = (int)h;
     float f = h - sector;
     float r, g, b;
     switch (sector % 6) {
-      case 0: r = 1; g = f; b = 0; break;
-      case 1: r = 1 - f; g = 1; b = 0; break;
-      case 2: r = 0; g = 1; b = f; break;
-      case 3: r = 0; g = 1 - f; b = 1; break;
-      case 4: r = f; g = 0; b = 1; break;
-      default: r = 1; g = 0; b = 1 - f; break;
+      case 0:
+        r = 1;
+        g = f;
+        b = 0;
+        break;
+      case 1:
+        r = 1 - f;
+        g = 1;
+        b = 0;
+        break;
+      case 2:
+        r = 0;
+        g = 1;
+        b = f;
+        break;
+      case 3:
+        r = 0;
+        g = 1 - f;
+        b = 1;
+        break;
+      case 4:
+        r = f;
+        g = 0;
+        b = 1;
+        break;
+      default:
+        r = 1;
+        g = 0;
+        b = 1 - f;
+        break;
     }
     return ClockColor(to_linear(r), to_linear(g), to_linear(b));
   }
 
-  esphome::light::AddressableLight *physical_;
-  esphome::light::AddressableLight *virtual_main_;
-  esphome::light::LightState *main_state_;
-  esphome::switch_::Switch *seconds_switch_;
-  esphome::switch_::Switch *indicators_switch_;
-  esphome::switch_::Switch *wide_hour_hand_switch_;
+  esphome::light::AddressableLight* physical_;
+  esphome::light::AddressableLight* virtual_main_;
+  esphome::light::LightState* main_state_;
+  esphome::switch_::Switch* seconds_switch_;
+  esphome::switch_::Switch* indicators_switch_;
+  esphome::switch_::Switch* wide_hour_hand_switch_;
   int offset_;
   int num_leds_;
 
@@ -1112,11 +1145,11 @@ class ClockCompositor {
   int spin_head_ = 0;
 };
 
-inline ClockCompositor *clock_compositor = nullptr;
+inline ClockCompositor* clock_compositor = nullptr;
 
 // Entry points of the API actions. Optional numbers <= 0 and empty strings mean the default.
 // The transition of an API action: "" is the default transition, "none" none
-inline ViewTransition clock_transition(const std::string &name) {
+inline ViewTransition clock_transition(const std::string& name) {
   if (name.empty() && clock_compositor != nullptr) return clock_compositor->default_transition();
   return view_transition_from_name(name);
 }
@@ -1128,11 +1161,12 @@ inline void clock_trigger_pulse(std::vector<int> color_rgb, int count, float dur
 // position: clock position 0-59 (0 = 12 o'clock), < 0 = the second hand
 inline void clock_trigger_ripple(float position, std::vector<int> color_rgb, float speed, float max_distance,
                                  float brightness) {
-  if (clock_compositor != nullptr) clock_compositor->trigger_ripple(position, color_rgb, speed, max_distance, brightness);
+  if (clock_compositor != nullptr)
+    clock_compositor->trigger_ripple(position, color_rgb, speed, max_distance, brightness);
 }
 
 // direction: "clockwise" or "counterclockwise", "" = clockwise
-inline void clock_trigger_spin(std::vector<int> color_rgb, float rotations, float speed, const std::string &direction,
+inline void clock_trigger_spin(std::vector<int> color_rgb, float rotations, float speed, const std::string& direction,
                                float brightness, float tail) {
   if (clock_compositor == nullptr) return;
   if (!direction.empty() && direction != "clockwise" && direction != "counterclockwise") {
@@ -1142,46 +1176,47 @@ inline void clock_trigger_spin(std::vector<int> color_rgb, float rotations, floa
 }
 
 // transition: "fade", "wipe" or "" for none; transition_ms <= 0 = default
-inline void clock_show_clock(const std::string &transition, float transition_ms) {
+inline void clock_show_clock(const std::string& transition, float transition_ms) {
   if (clock_compositor == nullptr) return;
   clock_compositor->show_clock_face(clock_transition(transition), transition_ms);
 }
 
 // sections: [start, end, r, g, b] per section, see ClockCompositor::show_progress()
 inline void clock_show_progress(std::vector<float> sections, float track, bool show_clock, float brightness,
-                                const std::string &transition, float transition_ms, const std::string &animation = "",
+                                const std::string& transition, float transition_ms, const std::string& animation = "",
                                 bool blink_when_complete = false) {
   if (clock_compositor == nullptr) return;
-  clock_compositor->show_progress(sections, track, show_clock, brightness, clock_transition(transition),
-                                  transition_ms, progress_animation_from_name(animation), blink_when_complete);
+  clock_compositor->show_progress(sections, track, show_clock, brightness, clock_transition(transition), transition_ms,
+                                  progress_animation_from_name(animation), blink_when_complete);
 }
 
 inline void clock_show_countdown(float duration_s, float remaining_s, std::vector<int> color_rgb, float track,
-                                 bool show_clock, float brightness, const std::string &transition,
-                                 float transition_ms, const std::string &animation = "") {
+                                 bool show_clock, float brightness, const std::string& transition, float transition_ms,
+                                 const std::string& animation = "") {
   if (clock_compositor == nullptr) return;
   clock_compositor->show_countdown(duration_s, remaining_s, color_rgb, track, show_clock, brightness,
-                                   clock_transition(transition), transition_ms, progress_animation_from_name(animation));
+                                   clock_transition(transition), transition_ms,
+                                   progress_animation_from_name(animation));
 }
 
 inline void clock_show_alert(std::vector<int> color_rgb, float period_ms, bool show_clock, float brightness,
-                             const std::string &transition, float transition_ms) {
+                             const std::string& transition, float transition_ms) {
   if (clock_compositor == nullptr) return;
   clock_compositor->show_alert(color_rgb, period_ms, show_clock, brightness, clock_transition(transition),
                                transition_ms);
 }
 
-// The "Clock View" select of Home Assistant: shows a view in the color of the light, so the views can be tried without service
-// calls. Progress and countdown take their size from the number entities.
-inline void clock_show_view_by_name(const std::string &name, float progress_percent, float countdown_minutes) {
+// The "Clock View" select of Home Assistant: shows a view in the color of the light, so the views can be tried without
+// service calls. Progress and countdown take their size from the number entities.
+inline void clock_show_view_by_name(const std::string& name, float progress_percent, float countdown_minutes) {
   if (clock_compositor == nullptr) return;
   const ViewTransition transition = clock_compositor->default_transition();
   if (name == "Progress") {
     clock_compositor->show_progress({0.0f, esphome::clamp(progress_percent, 0.0f, 100.0f) / 100.0f, -1, -1, -1}, -1.0f,
                                     false, -1.0f, transition);
   } else if (name == "Countdown") {
-    clock_compositor->show_countdown(std::max(countdown_minutes, 0.1f) * 60.0f, -1.0f, {}, -1.0f, false,
-                                     -1.0f, transition);
+    clock_compositor->show_countdown(std::max(countdown_minutes, 0.1f) * 60.0f, -1.0f, {}, -1.0f, false, -1.0f,
+                                     transition);
   } else if (name == "Alert") {
     clock_compositor->show_alert({}, -1.0f, false, -1.0f, transition);
   } else {
@@ -1194,7 +1229,7 @@ inline std::string clock_view_name() {
 }
 
 // The "Clock View Transition" entities of Home Assistant
-inline void clock_set_default_transition(const std::string &option, float transition_ms) {
+inline void clock_set_default_transition(const std::string& option, float transition_ms) {
   if (clock_compositor == nullptr) return;
   clock_compositor->set_default_transition(view_transition_from_option(option), transition_ms);
 }
@@ -1204,7 +1239,7 @@ inline void clock_set_default_track(float percent) {
   clock_compositor->set_default_track(percent / 100.0f);
 }
 
-inline void clock_set_default_progress_animation(const std::string &option, float duration_ms) {
+inline void clock_set_default_progress_animation(const std::string& option, float duration_ms) {
   if (clock_compositor == nullptr) return;
   clock_compositor->set_default_progress_animation(progress_animation_from_option(option), duration_ms);
 }

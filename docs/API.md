@@ -71,10 +71,3 @@ Short effects on top of any view.
 
 **Persisted entities and firmware updates:** on the ESP8266 the saved values are found by the order in which the entities are created.
 Adding or removing a persisted entity in front of others resets their saved values once.
-
-## From Python (haad)
-
-The `AnalogClock` device class of [haad](https://github.com/markusressel/haad) wraps these actions and entities.
-Besides calling the actions it has a `ClockViewScheduler`: sources *claim* the ring with a view, a priority (ambient, normal, high,
-critical) and a condition, and the scheduler shows the view of the highest claim, rotates between equal ones and returns to the clock
-when no claim is active.

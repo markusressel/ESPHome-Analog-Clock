@@ -80,8 +80,6 @@ are only visible while the light runs its "Clock" effect) are described in [docs
 
 ### Home Assistant
 
-* From Python, with [haad](https://github.com/markusressel/haad): the `AnalogClock` device class wraps the actions and
-  entities, and a claim based scheduler decides which view is shown when several things want the ring.
 * From Home Assistant automations, call the actions as `esphome.<device>_show_progress` etc.
 
 ## Development
