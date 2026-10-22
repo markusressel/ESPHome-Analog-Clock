@@ -17,6 +17,8 @@ local-example:
 # Compile the example configuration
 compile: local-example
 	esphome compile examples/_local.yaml
+	@# a misplaced section of the package is silently ignored by ESPHome, so check the boot code is really generated
+	grep -q '^      clock_compositor = new ClockCompositor' examples/.esphome/build/analog-clock/src/main.cpp
 
 # The virtual light is shared with ../esphome-configs (the LocalDeck uses it too), where it is developed.
 sync-component:

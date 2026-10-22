@@ -27,7 +27,9 @@ substitutions:
   # ones round to 0 (ceil(256 / 37) = 7 for 14%)
   clock_min_output: "7"
 
-  # API actions onto the physical ring, see clock.h
+esphome:
+  # The ClockCompositor composes the clock face (or another effect of light_ring) and the effects triggered by the
+  # API actions onto the physical ring, see components/analog_clock/clock.h
   on_loop:
     - lambda: |-
         if (clock_compositor != nullptr) {
